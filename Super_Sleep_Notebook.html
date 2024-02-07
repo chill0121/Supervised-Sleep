@@ -14583,8 +14583,8 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 <h2 id="Sleep-Quality-Prediction---Supervised-Machine-Learning">Sleep Quality Prediction - Supervised Machine Learning<a class="anchor-link" href="#Sleep-Quality-Prediction---Supervised-Machine-Learning">&#182;</a></h2><hr>
 <p>by: Cody Hill</p>
 <p>date: 1/18/2024</p>
-<p>This project is intended for training machine learning predictive models on Oura Ring exported data. Since the data collection period is currently limited, this notebook has been made with the goal of handling continued data uploads (all data cleaning/analysis will be generalized for continuous new data).</p>
-<p><em>This project is licensed under the terms of the MIT License, and is intended for private use only.</em></p>
+<p>This project is intended for training machine learning predictive models on Oura Ring exported data. Since the data collection period is currently limited, this project has been made with the goal of handling continued data uploads (all data cleaning/analysis will be generalized for continuous new data).</p>
+<p><em>This project is licensed under the terms of the MIT License, but is intended for private use only.</em></p>
 <p><em>If you fork or use any part of this project please attribute Cody Hill as the creator of this work.</em></p>
 
 </div>
@@ -14628,6 +14628,18 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 </div>
 </div>
 </div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<h3 id="Setup">Setup<a class="anchor-link" href="#Setup">&#182;</a></h3><hr>
+
+</div>
+</div>
+</div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs  ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
@@ -14637,6 +14649,7 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 <span class="kn">import</span> <span class="nn">sklearn</span>
@@ -14648,9 +14661,10 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 <span class="kn">from</span> <span class="nn">sklearn.preprocessing</span> <span class="kn">import</span> <span class="n">StandardScaler</span><span class="p">,</span> <span class="n">label_binarize</span><span class="p">,</span> <span class="n">LabelBinarizer</span>
 <span class="kn">from</span> <span class="nn">sklearn.linear_model</span> <span class="kn">import</span> <span class="n">LogisticRegression</span>
 <span class="kn">from</span> <span class="nn">sklearn.linear_model</span> <span class="kn">import</span> <span class="n">LinearRegression</span><span class="p">,</span> <span class="n">Ridge</span><span class="p">,</span> <span class="n">Lasso</span><span class="p">,</span> <span class="n">RidgeClassifier</span>
+<span class="kn">import</span> <span class="nn">scipy</span>
 <span class="kn">import</span> <span class="nn">scipy.stats</span> <span class="k">as</span> <span class="nn">stats</span>
-<span class="kn">import</span> <span class="nn">statsmodels.formula.api</span> <span class="k">as</span> <span class="nn">smf</span>
 <span class="kn">import</span> <span class="nn">statsmodels.api</span> <span class="k">as</span> <span class="nn">sm</span>
+<span class="kn">import</span> <span class="nn">matplotlib</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 <span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="nn">sns</span>
 </pre></div>
@@ -14667,7 +14681,68 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
-<h3 id="Setup-and-Data-Cleaning">Setup and Data Cleaning<a class="anchor-link" href="#Setup-and-Data-Cleaning">&#182;</a></h3><hr>
+<h5 id="Environment-Information-for-Reproducibility">Environment Information for Reproducibility<a class="anchor-link" href="#Environment-Information-for-Reproducibility">&#182;</a></h5>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+     <div class="CodeMirror cm-s-jupyter">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Python version: </span><span class="si">{</span><span class="n">sys</span><span class="o">.</span><span class="n">version</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+<span class="n">packages</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="p">,</span> <span class="n">pd</span><span class="p">,</span> <span class="n">sklearn</span><span class="p">,</span> <span class="n">scipy</span><span class="p">,</span> <span class="n">sm</span><span class="p">,</span> <span class="n">matplotlib</span><span class="p">,</span> <span class="n">sns</span><span class="p">]</span>
+<span class="k">for</span> <span class="n">package</span> <span class="ow">in</span> <span class="n">packages</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">package</span><span class="p">)</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="s1">'from'</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> using version: </span><span class="si">{</span><span class="n">package</span><span class="o">.</span><span class="n">__version__</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</pre></div>
+
+     </div>
+</div>
+</div>
+</div>
+
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+
+
+<div class="jp-OutputArea jp-Cell-outputArea">
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+
+
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
+<pre>Python version: 3.11.7 (main, Dec  4 2023, 18:10:11) [Clang 15.0.0 (clang-1500.1.0.2.5)]
+&lt;module &#39;numpy&#39;  using version: 1.26.3
+&lt;module &#39;pandas&#39;  using version: 2.1.4
+&lt;module &#39;sklearn&#39;  using version: 1.3.2
+&lt;module &#39;scipy&#39;  using version: 1.11.4
+&lt;module &#39;statsmodels.api&#39;  using version: 0.14.1
+&lt;module &#39;matplotlib&#39;  using version: 3.8.2
+&lt;module &#39;seaborn&#39;  using version: 0.13.2
+</pre>
+</div>
+</div>
+
+</div>
+
+</div>
+
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<h3 id="Data-Import-and-Cleaning">Data Import and Cleaning<a class="anchor-link" href="#Data-Import-and-Cleaning">&#182;</a></h3><hr>
 
 </div>
 </div>
@@ -17252,7 +17327,7 @@ class="
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
-<p>Here we can take a look at a slice of the date with our new version of the target variable (y).</p>
+<p>Here we can take a look at a slice of the date with our new categorical versions of the target variable (y).</p>
 
 </div>
 </div>
@@ -21190,7 +21265,7 @@ class="
 <li>[X] Collinearity between features checks in model selection</li>
 <li>[X] Feature standardization/normalization</li>
 <li>[ ] Create Readme</li>
-<li>[ ] Create environment file for reproducibility</li>
+<li>[X] Create environment file for reproducibility</li>
 <li>[X] Reroute filepath to align with github cloning.</li>
 <li>[X] Deal with NaNs using a generalized method</li>
 <li>[X] Bin the Ys!<ul>
