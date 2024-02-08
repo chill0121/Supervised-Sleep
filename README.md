@@ -1,7 +1,9 @@
 # Supervised-Sleep
 Sleep quality predictions using supervised machine learning.
 
-This project is intended for training machine learning predictive models on Oura Ring exported data. Since the data collection period is currently limited, this project has been made with the goal of handling continued data uploads (all data cleaning/analysis will be generalized for continuous new data).
+This project is intended as a demonstration and exploring in training machine learning predictive models on Oura Ring exported user data. The ground truth target variable is the sleep score assigned to each day from the exported data. Along with the goal of creating a well-fit model for this problem, both regression and classification models will be used in this project, exploring the efficacy of turning the discrete sleep scores into ordinal categorical variables.
+
+Since the data collection period is currently limited, this project has been made with the goal of handling continued data uploads (all data cleaning/analysis will be generalized for continuous new data).
 
 *This project is licensed under the terms of the MIT License, but is intended for private use only.*
 
