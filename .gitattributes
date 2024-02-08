@@ -1,2 +1,3 @@
-Super_Sleep_Notebook.html linguist-vendored
+Super_Sleep_Notebook_Light.html linguist-vendored
+Super_Sleep_Notebook_Dark.html linguist-vendored
 *.ipynb linguist-language=Python
