@@ -14742,7 +14742,7 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
-<h3 id="Data-Import-and-Cleaning">Data Import and Cleaning<a class="anchor-link" href="#Data-Import-and-Cleaning">&#182;</a></h3><hr>
+<h3 id="Data-Import,-Cleaning,-and-Processing">Data Import, Cleaning, and Processing<a class="anchor-link" href="#Data-Import,-Cleaning,-and-Processing">&#182;</a></h3><hr>
 
 </div>
 </div>
@@ -19084,7 +19084,7 @@ The means of the two samples are not equal!
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
-<p>This hypothesis test shows that <code>bedtime_start_delta</code> does in fact have an affect on the sleep <code>score</code> and is a feature worth using in the models.</p>
+<p>This hypothesis test shows that the mean sleep scores of the two <code>bedtime_start_delta</code> population sets (late and early bedtimes) are different, and does in fact have an effect on sleep <code>score</code> and is a feature worth adding in the models.</p>
 
 </div>
 </div>
@@ -20624,7 +20624,8 @@ class="
             <span class="n">X_test_temp</span> <span class="o">=</span> <span class="n">X_test_scaled</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">X_test_temp</span> <span class="o">=</span> <span class="n">X_test</span>
-
+            
+        <span class="c1"># Check if model is a statsmodel object, if so use their score conventions.</span>
         <span class="k">if</span> <span class="s1">'statsmodels'</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">mod</span><span class="p">):</span>
             <span class="n">temp_scores</span> <span class="o">=</span> <span class="n">ols_scores</span><span class="p">(</span><span class="n">mod</span><span class="p">)</span>
             <span class="n">y_pred</span> <span class="o">=</span> <span class="n">mod</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">add_constant</span><span class="p">(</span><span class="n">X_test_scaled</span><span class="p">))</span>
@@ -20685,6 +20686,7 @@ class="
         <span class="k">else</span><span class="p">:</span>
             <span class="n">X_test_temp</span> <span class="o">=</span> <span class="n">X_test</span>
 
+        <span class="c1"># Check if model is a statsmodel object, if so use their score conventions.</span>
         <span class="k">if</span> <span class="s1">'statsmodels'</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">mod</span><span class="p">):</span>
             <span class="n">y_pred</span> <span class="o">=</span> <span class="n">mod</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">add_constant</span><span class="p">(</span><span class="n">X_test_scaled</span><span class="p">))</span>
             <span class="n">model_name</span> <span class="o">=</span> <span class="s1">'LinearRegression(scaled)'</span>
