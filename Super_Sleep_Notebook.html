@@ -14583,7 +14583,8 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 <h2 id="Sleep-Quality-Prediction---Supervised-Machine-Learning">Sleep Quality Prediction - Supervised Machine Learning<a class="anchor-link" href="#Sleep-Quality-Prediction---Supervised-Machine-Learning">&#182;</a></h2><hr>
 <p>by: Cody Hill</p>
 <p>date: 1/18/2024</p>
-<p>This project is intended for training machine learning predictive models on Oura Ring exported data. Since the data collection period is currently limited, this project has been made with the goal of handling continued data uploads (all data cleaning/analysis will be generalized for continuous new data).</p>
+<p>This project is intended as a demonstration and exploring in training machine learning predictive models on Oura Ring exported user data. The ground truth target variable is the sleep score assigned to each day from the exported data. Along with the goal of creating a well-fit model for this problem, both regression and classification models will be used in this project, exploring the efficacy of turning the discrete sleep scores into ordinal categorical variables.</p>
+<p>Since the data collection period is currently limited, this project has been made with the goal of handling continued data uploads (all data cleaning/analysis will be generalized for continuous new data).</p>
 <p><em>This project is licensed under the terms of the MIT License, but is intended for private use only.</em></p>
 <p><em>If you fork or use any part of this project please attribute Cody Hill as the creator of this work.</em></p>
 
@@ -14599,12 +14600,17 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
 <h3 id="Data-Source-Information">Data Source Information<a class="anchor-link" href="#Data-Source-Information">&#182;</a></h3><hr>
 <p>All data has been exported from my personal Oura Ring containing raw biometric data and Oura calculated data since I began wearing the device.</p>
-<p>The Oura Ring tracks and records over 20 biometric signals from the sensors on the inside of the ring. Along with that raw biometric data, Oura's software feature engineers new metrics to assist in calculating a daily score assigned to categories such as sleep, recovery, readiness, activity, etc.. In total 89 features can be extracted from a user's account giving historical data since the beginning of the user's wear time. Most of these features are cumulative sums of metrics or other measures that have 1 entry per day, but the sleep data has entries for every time a user is sleeping, potentially allowing for multiple entries per day.</p>
+<p>The Oura Ring tracks and records over 20 biometric signals from the sensors on the inside of the ring throughout the day and during sleep. Along with the raw biometric data, Oura's software engineers new metrics to assist in calculating a daily score assigned to categories such as sleep, recovery, readiness, activity, etc.. In total 89 features can be extracted from a user's account giving historical data since the beginning of the user's wear time. Most of these features are daily cumulative sums of metrics or other measures that typically have 1 entry per day, but the sleep data has entries for every time a user is sleeping, potentially allowing for multiple entries per day.</p>
 <p><strong>Notable Data Information:</strong></p>
 <ul>
 <li>Data collection starting 2/3/2023 to 2/6/2024 (last upload) <del>1/18/2024</del></li>
 <li>Oura Ring Gen. 3 | Firmware: 2.9.32</li>
-<li><strong>Feature Information</strong> <em>(info can be found at <a href="https://cloud.ouraring.com/edu/sleep_score">https://cloud.ouraring.com/edu/sleep_score</a>)</em>:<ul>
+<li>89 Total Features</li>
+<li>369 rows of biometric data, which equates to 369 days of data.</li>
+<li><p>730 rows of sleep data, which equates to that number of sleep events recorded.</p>
+</li>
+<li><p><strong>Feature Information</strong> <em>(more info can be found at <a href="https://cloud.ouraring.com/edu/sleep_score">https://cloud.ouraring.com/edu/sleep_score</a>)</em>:</p>
+<ul>
 <li><strong>Sleep Score</strong>: (<code>score</code>) Ranging from 0-100, the sleep score is an overall measure of how well you slept.</li>
 <li><strong>Awake Time</strong>: (<code>awake_time</code>) Awake time is the time spent awake in bed before and after falling asleep.</li>
 <li><strong>Bedtime</strong>: (<code>bedtime_start_delta</code>) Bedtime is an estimate of the time you went to bed with the intention to sleep. Delta measures the difference of your bedtime compared to your regular bedtime (calculates continuously).</li>
@@ -14657,7 +14663,7 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 <span class="kn">from</span> <span class="nn">sklearn.ensemble</span> <span class="kn">import</span> <span class="n">RandomForestClassifier</span><span class="p">,</span> <span class="n">RandomForestRegressor</span><span class="p">,</span> <span class="n">AdaBoostClassifier</span>
 <span class="kn">from</span> <span class="nn">sklearn.svm</span> <span class="kn">import</span> <span class="n">SVC</span><span class="p">,</span> <span class="n">SVR</span>
 <span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="kn">import</span> <span class="n">train_test_split</span><span class="p">,</span> <span class="n">StratifiedShuffleSplit</span><span class="p">,</span> <span class="n">cross_val_score</span><span class="p">,</span> <span class="n">GridSearchCV</span>
-<span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="kn">import</span> <span class="n">confusion_matrix</span><span class="p">,</span> <span class="n">ConfusionMatrixDisplay</span><span class="p">,</span> <span class="n">roc_auc_score</span><span class="p">,</span> <span class="n">roc_curve</span><span class="p">,</span> <span class="n">RocCurveDisplay</span><span class="p">,</span> <span class="n">mean_squared_error</span><span class="p">,</span> <span class="n">mean_absolute_error</span><span class="p">,</span> <span class="n">auc</span>
+<span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="kn">import</span> <span class="n">confusion_matrix</span><span class="p">,</span> <span class="n">ConfusionMatrixDisplay</span><span class="p">,</span> <span class="n">roc_auc_score</span><span class="p">,</span> <span class="n">roc_curve</span><span class="p">,</span> <span class="n">RocCurveDisplay</span><span class="p">,</span> <span class="n">mean_squared_error</span><span class="p">,</span> <span class="n">mean_absolute_error</span><span class="p">,</span> <span class="n">auc</span><span class="p">,</span> <span class="n">f1_score</span>
 <span class="kn">from</span> <span class="nn">sklearn.preprocessing</span> <span class="kn">import</span> <span class="n">StandardScaler</span><span class="p">,</span> <span class="n">label_binarize</span><span class="p">,</span> <span class="n">LabelBinarizer</span>
 <span class="kn">from</span> <span class="nn">sklearn.linear_model</span> <span class="kn">import</span> <span class="n">LogisticRegression</span>
 <span class="kn">from</span> <span class="nn">sklearn.linear_model</span> <span class="kn">import</span> <span class="n">LinearRegression</span><span class="p">,</span> <span class="n">Ridge</span><span class="p">,</span> <span class="n">Lasso</span><span class="p">,</span> <span class="n">RidgeClassifier</span>
@@ -14666,6 +14672,7 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 <span class="kn">import</span> <span class="nn">statsmodels.api</span> <span class="k">as</span> <span class="nn">sm</span>
 <span class="kn">import</span> <span class="nn">matplotlib</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">matplotlib.colors</span> <span class="kn">import</span> <span class="n">Normalize</span>
 <span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="nn">sns</span>
 </pre></div>
 
@@ -14747,6 +14754,23 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 </div>
 </div>
 </div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>As discussed above, we will import the data using a few separate dataframes.</p>
+<ol>
+<li><code>biometric_df</code> for the biometric data that has one entry per day.</li>
+<li><code>sleep_df</code> for all the recorded sleep events containing potentially multiple entries per day.</li>
+<li><code>daily_sleep_score</code> contains the daily sleep score which will be used as the ground truth target variable.</li>
+</ol>
+
+</div>
+</div>
+</div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs  ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
@@ -14756,7 +14780,6 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Import data</span>
-<span class="c1"># TODO: Switch this to the github urls for the data so others can use.</span>
 <span class="n">current_wdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
 <span class="n">data_folder</span> <span class="o">=</span> <span class="n">current_wdir</span> <span class="o">+</span> <span class="s1">'/Data'</span>
 <span class="n">sleep_data_folder</span> <span class="o">=</span> <span class="n">current_wdir</span> <span class="o">+</span> <span class="s1">'/Data/Sleep_Data'</span>
@@ -14782,6 +14805,18 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 </div>
 </div>
 
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>First, let's look at what the data types of these features are.</p>
+
+</div>
+</div>
+</div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
@@ -14790,7 +14825,119 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 <div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># First looks</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">biometric_df</span><span class="o">.</span><span class="n">dtypes</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span>
+</pre></div>
+
+     </div>
+</div>
+</div>
+</div>
+
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+
+
+<div class="jp-OutputArea jp-Cell-outputArea">
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[&nbsp;]:</div>
+
+
+
+
+<div class="jp-RenderedText jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/plain">
+<pre>int64      25
+float64    13
+object      4
+Name: count, dtype: int64</pre>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+     <div class="CodeMirror cm-s-jupyter">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">sleep_df</span><span class="o">.</span><span class="n">dtypes</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span>
+</pre></div>
+
+     </div>
+</div>
+</div>
+</div>
+
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+
+
+<div class="jp-OutputArea jp-Cell-outputArea">
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[&nbsp;]:</div>
+
+
+
+
+<div class="jp-RenderedText jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/plain">
+<pre>float64    33
+object      9
+int64       5
+Name: count, dtype: int64</pre>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>Majority of these 89 features are numerical and 13 features showing up as objects which are typically strings.</p>
+
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>Let's take a closer look and display the dataframes to get a better idea what these features are.</p>
+
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+     <div class="CodeMirror cm-s-jupyter">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># First detailed looks</span>
 <span class="nb">print</span><span class="p">(</span><span class="s1">'biometric_df info:</span><span class="se">\n</span><span class="s1">------------------</span><span class="se">\n</span><span class="s1">'</span><span class="p">,</span> <span class="n">biometric_df</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 <span class="n">display</span><span class="p">(</span><span class="n">biometric_df</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">biometric_df</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
@@ -15324,7 +15471,8 @@ daily_sleep_score_df info:
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
-<p>We've removed 33 feature columns containing the word 'contributors' or 'score' as we'll be using the score in <code>daily_sleep_score_df</code>.</p>
+<p>We are left with 369 rows in the <code>biometric_df</code> which means 369 days, and 730 rows in the <code>sleep_df</code> which equates to that number of sleep events recorded.
+We've removed 33 feature columns containing the word 'contributors' or 'score' as we'll be using the score in <code>daily_sleep_score_df</code>.</p>
 <p>Let's take a closer look at the remaining features, identifying those that will be of use in our models or not, and continue further data preparations.</p>
 
 </div>
@@ -15436,7 +15584,7 @@ daily_sleep_score_df info:
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
-<p>We'll be removing any features that don't seem relevant to our sleep score prediction models. For now we will not touch any potentially "overlapping" features that might introduce predictor collinearity issues, but will address them later.</p>
+<p>We'll be removing any features that don't seem relevant to our sleep score prediction models. For now we will not touch most of the potentially "overlapping" features that might introduce predictor collinearity issues, but will remove some obvious ones and address the remainder later.</p>
 <p>We'll also take a look at the remaining features' data types and see if any data munging is necessary (formatting all the features (float, int, dates, dummy/indicator encoding)). At the very least we know we have some date columns that will need to be transformed into pandas' datetime format.</p>
 
 </div>
@@ -15467,8 +15615,47 @@ daily_sleep_score_df info:
                 <span class="s1">'met_1_min'</span><span class="p">,</span> <span class="s1">'ring_met_1_min'</span><span class="p">,</span> 
                 <span class="s1">'temperature_trend_deviation'</span><span class="p">]</span>
 <span class="n">biometric_df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">drop_col_bio</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">inplace</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+</pre></div>
 
-<span class="c1"># Reformat date columns</span>
+     </div>
+</div>
+</div>
+</div>
+
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>Features like <code>efficiency</code> were removed for being too similar to other remaining features as it's just a ratio of <code>time_in_bed</code> and <code>total_sleep_duration</code> which would cause issues in our model later.</p>
+<p><code>average_met_minutes</code>, <code>target_calories</code>, <code>target_meters</code>, etc are daily goals used by Oura to calculate other metrics.</p>
+
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>There are a few date columns that would be beneficial to turn into pandas datetime objects.</p>
+
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs  ">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+     <div class="CodeMirror cm-s-jupyter">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Reformat date columns</span>
 <span class="n">date_col_sleep</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'bedtime_end'</span><span class="p">,</span> <span class="s1">'bedtime_start'</span><span class="p">,</span> <span class="s1">'day'</span><span class="p">]</span>
 <span class="c1"># All times reformatted to UTC</span>
 <span class="n">sleep_df</span><span class="p">[</span><span class="n">date_col_sleep</span><span class="p">]</span> <span class="o">=</span> <span class="n">sleep_df</span><span class="p">[</span><span class="n">date_col_sleep</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">,</span> <span class="n">utc</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">errors</span> <span class="o">=</span> <span class="s1">'coerce'</span><span class="p">)</span>
@@ -15489,8 +15676,10 @@ daily_sleep_score_df info:
 <div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">biometric_df</span><span class="o">.</span><span class="n">dtypes</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">sleep_df</span><span class="o">.</span><span class="n">dtypes</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s1">'biometric_df:'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">biometric_df</span><span class="o">.</span><span class="n">select_dtypes</span><span class="p">(</span><span class="n">exclude</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'int64'</span><span class="p">,</span> <span class="s1">'float64'</span><span class="p">])</span><span class="o">.</span><span class="n">dtypes</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'</span><span class="se">\n</span><span class="s1">sleep_df:'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">sleep_df</span><span class="o">.</span><span class="n">select_dtypes</span><span class="p">(</span><span class="n">exclude</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'int64'</span><span class="p">,</span> <span class="s1">'float64'</span><span class="p">])</span><span class="o">.</span><span class="n">dtypes</span><span class="p">)</span>
 </pre></div>
 
      </div>
@@ -15512,39 +15701,15 @@ daily_sleep_score_df info:
 
 
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
-<pre>day                      datetime64[ns, UTC]
-active_calories                        int64
-high_activity_time                     int64
-low_activity_time                      int64
-medium_activity_time                   int64
-meters_to_target                       int64
-non_wear_time                          int64
-resting_time                           int64
-sedentary_time                         int64
-steps                                  int64
-total_calories                         int64
-temperature_deviation                float64
-spo2_percentage                      float64
+<pre>biometric_df:
+day    datetime64[ns, UTC]
 dtype: object
-average_breath                                       float64
-average_heart_rate                                   float64
-average_hrv                                          float64
-awake_time                                           float64
-bedtime_end                              datetime64[ns, UTC]
-bedtime_start                            datetime64[ns, UTC]
-day                                      datetime64[ns, UTC]
-deep_sleep_duration                                  float64
-latency                                              float64
-light_sleep_duration                                 float64
-lowest_heart_rate                                    float64
-rem_sleep_duration                                   float64
-restless_periods                                     float64
-time_in_bed                                            int64
-total_sleep_duration                                 float64
-type                                                  object
-bedtime_start_delta                                    int64
-readiness_temperature_deviation                      float64
-readiness_temperature_trend_deviation                float64
+
+sleep_df:
+bedtime_end      datetime64[ns, UTC]
+bedtime_start    datetime64[ns, UTC]
+day              datetime64[ns, UTC]
+type                          object
 dtype: object
 </pre>
 </div>
@@ -15561,7 +15726,8 @@ dtype: object
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
-<p>Everything above looks good, we can see that <code>['type']</code> is an object which likely means it's a string. Let's see what values it can take.</p>
+<p>Everything above looks good.</p>
+<p>we can see that <code>['type']</code> is an object which likely means it's a string. Let's see what values it can take and if it will be useful to keep.</p>
 
 </div>
 </div>
@@ -16893,7 +17059,7 @@ Latest Dates in each DF:
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
-<p>As we've seen, our target variable sleep score is in the form of discrete integers. This data comes to us from Oura's own models in which the exact process of how this number was obtained has been obfuscated from us. There's an argument to be made whether or not we should treat this as a regression task or classification task, or whether there's ever merit in casting a regression task into the classification space, as transforming the target variable here almost certainly introduces bias and causes information loss, but we will discuss that further later.</p>
+<p>As we've seen, our target variable sleep <code>score</code> is in the form of discrete integers. This data comes to us from Oura's own models in which the exact process of how this number was obtained has been obfuscated from us. There's an argument to be made whether or not we should treat this as a regression task or classification task, or whether there's ever merit in casting a regression task into the classification space, as transforming the target variable here almost certainly introduces bias and causes information loss, but we will discuss that further in the conclusion section.</p>
 <p>For now, since this project is just an exercise and since our dataset has relatively few samples, it might be beneficial to explore transforming the sleep score into categorical variable bins. We will keep the discrete sleep score column for use in our models, but create another few columns using different techniques that indicates a bin that score falls into for use in logistic regression/classification.</p>
 <p>We have a few different methods we can use to approach how to categorize sleep scores:</p>
 <ul>
@@ -17200,7 +17366,7 @@ class="
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
 <p><strong>Custom Quantile Bins</strong></p>
 <hr>
-<p>The creation of this method isn't too dissimilar to the previous quantile bin implementation, but uses only the median and standard deviation to create each interval. Since this data is my own, the justifications were based on insights of my own perception of sleep quality (i.e., I believe my sleep generally skews towards poor sleep, therefore the bins and total number of classes in each should reflect that perception which is backed up here by the distribution's left tailedness.). In this method it was also determined to try 6 bins with the labels: <code>['Worst', 'Bad', 'Below Avg', 'Above Avg', 'Good', 'Best']</code></p>
+<p>The creation of this method isn't too dissimilar to the previous quantile bin implementation, but uses only the median and standard deviation to create each interval. Since this data is my own, the justifications were based on insights of my own perception of sleep quality (i.e., I believe my sleep generally skews towards poor sleep, therefore the bins and total number of classes in each should reflect that perception which is backed up here by the distribution's left tailedness.). In this method it was also determined to try 6 bins effectively splitting the median with the labels: <code>['Worst', 'Bad', 'Below Avg', 'Above Avg', 'Good', 'Best']</code></p>
 <p><em>Note: I did not use any hard-coding to get these intervals, only the median and standard deviations so it will adjust when the data is updated, potentially shifting if my sleep consistently gets better.</em></p>
 
 </div>
@@ -18042,7 +18208,7 @@ class="
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
-<p>Lastly, we need to see what data is missing from our final dataframe and rectify any issues found. For now, as to not alter the distribution of  the features any NaN value will be replaced with the median value of that feature.</p>
+<p>Lastly, we need to see what data is missing from our final dataframe and rectify any issues found.</p>
 
 </div>
 </div>
@@ -18056,13 +18222,64 @@ class="
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Explore and deal with NaN values.</span>
-<span class="c1"># A good option to deal with each feature individually.</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Columns with NaNs present:'</span><span class="p">,</span> <span class="n">bio_sleep_df</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="n">bio_sleep_df</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">()]</span><span class="o">.</span><span class="n">to_list</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">''</span><span class="si">:</span><span class="s2">&lt;5</span><span class="si">}</span><span class="s2">Total number of NaNs: </span><span class="si">{</span><span class="n">bio_sleep_df</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</pre></div>
+
+     </div>
+</div>
+</div>
+</div>
+
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+
+
+<div class="jp-OutputArea jp-Cell-outputArea">
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+
+
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
+<pre>Columns with NaNs present: [&#39;temperature_deviation&#39;, &#39;spo2_percentage&#39;]
+     Total number of NaNs: 48
+</pre>
+</div>
+</div>
+
+</div>
+
+</div>
+
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>48 NaN values were found only in the <code>temperature_deviation</code> and <code>spo2_percentage</code> columns. These two features don't vary too much in their range of values so, for now, as to not alter the distribution of the features any NaN value will be replaced with the median value of that feature.</p>
+
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+     <div class="CodeMirror cm-s-jupyter">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># A good option to deal with each feature individually.</span>
 <span class="c1"># &gt;&gt;&gt; values = {{"Feature 1": .median(), "Feature 2": 0, "Feature 3: .mean()}}</span>
 <span class="c1"># &gt;&gt;&gt; df.fillna(value=values)</span>
 <span class="c1"># Only feature with NaN currently is SPO2 and temp. deviation, using median for now.</span>
 <span class="c1"># TODO: Come back and tune each feature.</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">'Columns with NaNs present:'</span><span class="p">,</span> <span class="n">bio_sleep_df</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="n">bio_sleep_df</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">()]</span><span class="o">.</span><span class="n">to_list</span><span class="p">())</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">''</span><span class="si">:</span><span class="s2">&lt;5</span><span class="si">}</span><span class="s2">Total number of NaNs: </span><span class="si">{</span><span class="n">bio_sleep_df</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">bio_sleep_df</span><span class="p">:</span>
     <span class="k">if</span> <span class="n">bio_sleep_df</span><span class="p">[</span><span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="s1">'float64'</span> <span class="ow">or</span> <span class="n">bio_sleep_df</span><span class="p">[</span><span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="s1">'int64'</span><span class="p">:</span>
         <span class="n">bio_sleep_df</span><span class="p">[</span><span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="n">bio_sleep_df</span><span class="p">[</span><span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">median</span><span class="p">(),</span> <span class="n">inplace</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
@@ -18090,9 +18307,7 @@ class="
 
 
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
-<pre>Columns with NaNs present: [&#39;temperature_deviation&#39;, &#39;spo2_percentage&#39;]
-     Total number of NaNs: 48
-Number of NaN values remaining after adjustments: 0
+<pre>Number of NaN values remaining after adjustments: 0
 </pre>
 </div>
 </div>
@@ -18109,6 +18324,18 @@ Number of NaN values remaining after adjustments: 0
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
 <h3 id="Exploratory-Data-Analysis-(EDA)">Exploratory Data Analysis (EDA)<a class="anchor-link" href="#Exploratory-Data-Analysis-(EDA)">&#182;</a></h3><hr>
+
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>First let's take a look at the high-level summary.</p>
 
 </div>
 </div>
@@ -18390,7 +18617,39 @@ Number of NaN values remaining after adjustments: 0
 
 </div>
 
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<ul>
+<li><code>score</code> seems to be slightly left-skewed with the mean of 74.59 below the median of 77.00.<ul>
+<li>The distribution also seems to be highly concentrated around the median, giving it a high kurtosis value.</li>
+</ul>
+</li>
+<li><code>deep_sleep_duration</code> and <code>rem_sleep_duration</code> have similar data distributions.</li>
+<li><code>light_sleep_duration</code> looks to be the most common type of sleep when compared to the others.</li>
+<li><code>steps</code> averages ~ 10819 per day which is something to be happy about.</li>
+</ul>
+
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<h5 id="EDA-Helper-Functions">EDA Helper Functions<a class="anchor-link" href="#EDA-Helper-Functions">&#182;</a></h5><p>Majority of the time data is in seconds, which is hard to interpret. Creating a seconds to hours converter will be helpful for EDA.</p>
+
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs  ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -18401,9 +18660,26 @@ Number of NaN values remaining after adjustments: 0
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Function to transform inputs from seconds to hours.</span>
 <span class="k">def</span> <span class="nf">sec_to_hours</span><span class="p">(</span><span class="n">seconds</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">seconds</span> <span class="o">/</span> <span class="mi">60</span> <span class="o">/</span> <span class="mi">60</span>
+</pre></div>
 
-<span class="nb">print</span><span class="p">(</span><span class="s1">'Total Sleep in Hours:'</span><span class="p">)</span>
-<span class="n">sec_to_hours</span><span class="p">(</span><span class="n">bio_sleep_df</span><span class="p">[</span><span class="s1">'total_sleep_duration'</span><span class="p">]</span><span class="o">.</span><span class="n">describe</span><span class="p">())</span>
+     </div>
+</div>
+</div>
+</div>
+
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+     <div class="CodeMirror cm-s-jupyter">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s1">'Types of Sleep in Hours:'</span><span class="p">)</span>
+<span class="n">sec_to_hours</span><span class="p">(</span><span class="n">bio_sleep_df</span><span class="p">[[</span><span class="s1">'deep_sleep_duration'</span><span class="p">,</span> 
+                           <span class="s1">'light_sleep_duration'</span><span class="p">,</span> 
+                           <span class="s1">'rem_sleep_duration'</span><span class="p">,</span> 
+                           <span class="s1">'total_sleep_duration'</span><span class="p">]]</span><span class="o">.</span><span class="n">describe</span><span class="p">())</span>
 </pre></div>
 
      </div>
@@ -18425,7 +18701,7 @@ Number of NaN values remaining after adjustments: 0
 
 
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
-<pre>Total Sleep in Hours:
+<pre>Types of Sleep in Hours:
 </pre>
 </div>
 </div>
@@ -18437,17 +18713,91 @@ Number of NaN values remaining after adjustments: 0
 
 
 
+<div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/html">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
 
-<div class="jp-RenderedText jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/plain">
-<pre>count    0.098056
-mean     7.256350
-std      0.892323
-min      3.900000
-25%      6.683333
-50%      7.300000
-75%      7.800000
-max      9.866667
-Name: total_sleep_duration, dtype: float64</pre>
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>deep_sleep_duration</th>
+      <th>light_sleep_duration</th>
+      <th>rem_sleep_duration</th>
+      <th>total_sleep_duration</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>count</th>
+      <td>0.098056</td>
+      <td>0.098056</td>
+      <td>0.098056</td>
+      <td>0.098056</td>
+    </tr>
+    <tr>
+      <th>mean</th>
+      <td>1.462512</td>
+      <td>4.272993</td>
+      <td>1.520845</td>
+      <td>7.256350</td>
+    </tr>
+    <tr>
+      <th>std</th>
+      <td>0.463091</td>
+      <td>0.694616</td>
+      <td>0.404584</td>
+      <td>0.892323</td>
+    </tr>
+    <tr>
+      <th>min</th>
+      <td>0.058333</td>
+      <td>2.541667</td>
+      <td>0.308333</td>
+      <td>3.900000</td>
+    </tr>
+    <tr>
+      <th>25%</th>
+      <td>1.200000</td>
+      <td>3.808333</td>
+      <td>1.275000</td>
+      <td>6.683333</td>
+    </tr>
+    <tr>
+      <th>50%</th>
+      <td>1.425000</td>
+      <td>4.250000</td>
+      <td>1.525000</td>
+      <td>7.300000</td>
+    </tr>
+    <tr>
+      <th>75%</th>
+      <td>1.700000</td>
+      <td>4.733333</td>
+      <td>1.775000</td>
+      <td>7.800000</td>
+    </tr>
+    <tr>
+      <th>max</th>
+      <td>2.833333</td>
+      <td>6.025000</td>
+      <td>2.616667</td>
+      <td>9.866667</td>
+    </tr>
+  </tbody>
+</table>
+</div>
 </div>
 
 </div>
@@ -18456,6 +18806,35 @@ Name: total_sleep_duration, dtype: float64</pre>
 
 </div>
 
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>Much easier to interpret now.</p>
+<ul>
+<li>Deep and REM sleep average about 1.5 hours per night.</li>
+<li>Light sleep accounts for about 4.3 hours.</li>
+<li>Total amount of sleep averages 7.25 for the last year.</li>
+</ul>
+
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>Going further we can visualize the total sleep distribution.</p>
+
+</div>
+</div>
+</div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
@@ -18507,6 +18886,18 @@ class="
 
 </div>
 
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>It might be interesting to see if there's any changes in sleep throughout the year.</p>
+
+</div>
+</div>
+</div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
@@ -18560,7 +18951,90 @@ class="
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
-<p>Some of the features that likely have a biggest effect on sleep score are probably going to be features that measure sleep duration. A plot of sleep score against sleep durations would be useful at determining by how much.</p>
+<p>Majority of the sleep score outliers appear during the winter months.</p>
+
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>Let's try to plot another feature in the same way that probably affects sleep score.</p>
+
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+     <div class="CodeMirror cm-s-jupyter">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">ax</span> <span class="o">=</span> <span class="n">sns</span><span class="o">.</span><span class="n">boxplot</span><span class="p">(</span><span class="n">x</span> <span class="o">=</span> <span class="n">bio_sleep_df</span><span class="p">[</span><span class="s1">'day'</span><span class="p">]</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">month</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">bio_sleep_df</span><span class="p">[</span><span class="s1">'awake_time'</span><span class="p">])</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">title</span> <span class="o">=</span> <span class="s1">'Awake Time by Month Boxplot'</span><span class="p">,</span> <span class="n">xlabel</span> <span class="o">=</span> <span class="s1">'month'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+
+     </div>
+</div>
+</div>
+</div>
+
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+
+
+<div class="jp-OutputArea jp-Cell-outputArea">
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+
+
+
+
+<div class="jp-RenderedImage jp-OutputArea-output ">
+<img src="data:image/png;base64,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yvL9zdBkJgxNREREFasiVgQvy/c3VwQnIiIiq2BjY4Pg4GCLvT7HNBERERHJwNBEREREJANDExEREZEMDE1EREREMjA0EREREcnA0EREREQkA0MTERERkQwMTUREREQyMDQRERERycDQRERERCQDQxMRERGRDAxNRERERDIwNBERERHJwNBEREREJANDExEREZEMDE1EREREMjA0EREREcnA0EREREQkA0MTERERkQwMTUREREQyMDQRERERyWDR0BQXF4e2bdvCyckJdevWRb9+/XDy5EmjNl27doVKpTL6eeutt4zaXLhwAREREahevTrq1q2Ld999F/fu3TNqs3v3brRq1Qr29vbw9/fHmjVrStQTHx8PHx8fODg4ICQkBOnp6WZ/z0RERGSdLBqaUlNTERUVhX379iE5ORnFxcUICwtDYWGhUbs333wT2dnZ0s+iRYukfTqdDhEREbh79y727t2LL7/8EmvWrMHs2bOlNlqtFhEREXjhhReQkZGByZMn44033sCOHTukNhs3bsTUqVMRExODQ4cOoUWLFggPD8eVK1cq/oMgIiIixVMJIYSlizC4evUq6tati9TUVHTp0gXA/Z6mli1bYunSpaU+56effsLLL7+My5cvw8PDAwCwcuVKTJ8+HVevXoWdnR2mT5+Obdu24dixY9LzBg0ahLy8PPz8888AgJCQELRt2xbLly8HAOj1ejRo0AATJkzAjBkznlh7QUEBXFxckJ+fD2dn5/J8DERERFRJyvL9ragxTfn5+QAAd3d3o+1JSUmoXbs2mjdvjpkzZ+LWrVvSPo1Gg8DAQCkwAUB4eDgKCgqQlZUltenevbvRMcPDw6HRaAAAd+/excGDB43aqNVqdO/eXWrzsKKiIhQUFBj9EBERUdVVzdIFGOj1ekyePBkdO3ZE8+bNpe1DhgyBt7c36tWrh8zMTEyfPh0nT57Epk2bAAA5OTlGgQmA9DgnJ+exbQoKCnD79m1cv34dOp2u1DYnTpwotd64uDjMnTu3fG+aiIiIrIZiQlNUVBSOHTuGX3/91Wj7mDFjpD8HBgbCy8sL3bp1w5kzZ9CoUaPKLlMyc+ZMTJ06VXpcUFCABg0aWKweIiIiqliKCE3jx4/H1q1bkZaWhvr16z+2bUhICADg9OnTaNSoETw9PUvMcsvNzQUAeHp6Sv81bHuwjbOzMxwdHWFjYwMbG5tS2xiO8TB7e3vY29vLf5NERERk1Sw6pkkIgfHjx2Pz5s3YuXMnfH19n/icjIwMAICXlxcAIDQ0FEePHjWa5ZacnAxnZ2c0a9ZMapOSkmJ0nOTkZISGhgIA7Ozs0Lp1a6M2er0eKSkpUhsiIiJ6ulm0pykqKgrr16/H999/DycnJ2kMkouLCxwdHXHmzBmsX78evXr1Qq1atZCZmYkpU6agS5cuCAoKAgCEhYWhWbNmGDZsGBYtWoScnBxER0cjKipK6gl66623sHz5ckybNg2jRo3Czp078c0332Dbtm1SLVOnTsXw4cPRpk0btGvXDkuXLkVhYSFGjhxZ+R8MERERKY+wIACl/qxevVoIIcSFCxdEly5dhLu7u7C3txf+/v7i3XffFfn5+UbHOXfunOjZs6dwdHQUtWvXFm+//bYoLi42arNr1y7RsmVLYWdnJ/z8/KTXeNCyZctEw4YNhZ2dnWjXrp3Yt2+f7PeSn58vAJSojYiIiJSrLN/filqnyZpxnSYiIiLrY7XrNBEREREpFUMTERERkQwMTUREREQyMDQRERERycDQRERERCQDQxMRERGRDAxNRERERDIwNBERERHJwNBEREREJANDExEREZEMDE1EREREMjA0EREREcnA0EREREQkA0MTERERkQwMTUREREQyMDQRERERycDQRERERCQDQxMRERGRDAxNRERERDIwNBERERHJwNBEREREJANDExEREZEMDE1EREREMjA0EREREcnA0EREREQkA0MTERERkQwMTUREREQyMDQRERERycDQRERERCQDQxMRERGRDAxNRERERDIwNBERERHJwNBEREREJANDExEREZEMDE1EREREMjA0EREREcnA0EREREQkA0MTERERkQwMTUREREQyMDQRERERycDQRERERCQDQxMRERGRDAxNRERERDIwNBERERHJwNBEREREJANDExEREZEMDE1EREREMjA0EREREcnA0EREREQkA0MTERERkQwMTUREREQyMDQRERERycDQRERERCSDRUNTXFwc2rZtCycnJ9StWxf9+vXDyZMnjdrcuXMHUVFRqFWrFmrWrIl//OMfyM3NNWpz4cIFREREoHr16qhbty7effdd3Lt3z6jN7t270apVK9jb28Pf3x9r1qwpUU98fDx8fHzg4OCAkJAQpKenm/09ExERkXWyaGhKTU1FVFQU9u3bh+TkZBQXFyMsLAyFhYVSmylTpuDHH3/Et99+i9TUVFy+fBmvvPKKtF+n0yEiIgJ3797F3r178eWXX2LNmjWYPXu21Ear1SIiIgIvvPACMjIyMHnyZLzxxhvYsWOH1Gbjxo2YOnUqYmJicOjQIbRo0QLh4eG4cuVK5XwYREREpGxCQa5cuSIAiNTUVCGEEHl5ecLW1lZ8++23Ups//vhDABAajUYIIcT27duFWq0WOTk5UpsVK1YIZ2dnUVRUJIQQYtq0aSIgIMDotQYOHCjCw8Olx+3atRNRUVHSY51OJ+rVqyfi4uJk1Z6fny8AiPz8/DK+ayIiIsu6d++eOHTokPjll1/EoUOHxL179yxdUqUpy/e3osY05efnAwDc3d0BAAcPHkRxcTG6d+8utWnSpAkaNmwIjUYDANBoNAgMDISHh4fUJjw8HAUFBcjKypLaPHgMQxvDMe7evYuDBw8atVGr1ejevbvUhoiIqCpKS0tDZGQkpkyZgvnz52PKlCmIjIxEWlqapUtTHMWEJr1ej8mTJ6Njx45o3rw5ACAnJwd2dnZwdXU1auvh4YGcnBypzYOBybDfsO9xbQoKCnD79m383//9H3Q6XaltDMd4WFFREQoKCox+iIiIrElaWhpiYmLg5+eH+Ph4bN++HfHx8fDz80NMTAyD00MUE5qioqJw7NgxbNiwwdKlyBIXFwcXFxfpp0GDBpYuiYiISDadToeEhASEhoYiNjYWAQEBqF69OgICAhAbG4vQ0FCsWLECOp3O0qUqhiJC0/jx47F161bs2rUL9evXl7Z7enri7t27yMvLM2qfm5sLT09Pqc3Ds+kMj5/UxtnZGY6OjqhduzZsbGxKbWM4xsNmzpyJ/Px86efixYtlf+NEREQWkpmZiZycHERGRkKtNo4DarUakZGRyM7ORmZmpoUqVB6LhiYhBMaPH4/Nmzdj586d8PX1NdrfunVr2NraIiUlRdp28uRJXLhwAaGhoQCA0NBQHD161GiWW3JyMpydndGsWTOpzYPHMLQxHMPOzg6tW7c2aqPX65GSkiK1eZi9vT2cnZ2NfoiIiKzFtWvXAKDEd6+BYbuhHQHVLPniUVFRWL9+Pb7//ns4OTlJ44dcXFzg6OgIFxcXjB49GlOnToW7uzucnZ0xYcIEhIaGon379gCAsLAwNGvWDMOGDcOiRYuQk5OD6OhoREVFwd7eHgDw1ltvYfny5Zg2bRpGjRqFnTt34ptvvsG2bdukWqZOnYrhw4ejTZs2aNeuHZYuXYrCwkKMHDmy8j8YIiKiCmaYdKXVahEQEFBiv1arNWpHsOySAwBK/Vm9erXU5vbt22LcuHHCzc1NVK9eXfTv319kZ2cbHefcuXOiZ8+ewtHRUdSuXVu8/fbbori42KjNrl27RMuWLYWdnZ3w8/Mzeg2DZcuWiYYNGwo7OzvRrl07sW/fPtnvhUsOEBGRNbl3754YOHCgmDlzptDpdEb7dDqdmDlzphg0aFCVX36gLN/fKiGEsFxkqzoKCgrg4uKC/Px8XqojIiKrYJg9FxoaisjISPj6+kKr1SIpKQkajQZz585Fly5dLF1mhSrL9zdDk5kwNBERkTVKS0tDQkKC0RI7Xl5eGDt2bJUPTABDk0UwNBERkbXS6XTIzMzEtWvX4O7ujqCgINjY2Fi6rEpRlu9viw4EJyIiIsuzsbFBcHCwpctQPEWs00RERESkdAxNRERERDIwNBERERHJwNBEREREJANDExEREZEMDE1EREREMjA0EREREcnA0EREREQkA0MTERERkQwMTUREREQyMDQRERERycDQRERERCQDQxMRERGRDAxNRERERDIwNBERERHJwNBEREREJANDExEREZEMDE1EREREMjA0EREREcnA0EREREQkA0MTERERkQwMTUREREQyMDQRERERyWByaLp37x5++eUXfP7557hx4wYA4PLly7h586bZiiMiIiJSimqmPOn8+fPo0aMHLly4gKKiIrz00ktwcnLCwoULUVRUhJUrV5q7TiIiIiKLMqmnadKkSWjTpg2uX78OR0dHaXv//v2RkpJituKIiIiIlMKknqY9e/Zg7969sLOzM9ru4+ODS5cumaUwIiIiIiUxKTTp9XrodLoS2//88084OTmVuygiIiKqPDqdDpmZmbh27Rrc3d0RFBQEGxsbS5elOCaFprCwMCxduhSJiYkAAJVKhZs3byImJga9evUya4FERERUcdLS0pCQkICcnBxpm6enJ8aNG4cuXbpYsDLlUQkhRFmf9OeffyI8PBxCCJw6dQpt2rTBqVOnULt2baSlpaFu3boVUauiFRQUwMXFBfn5+XB2drZ0OURERE+UlpaGmJgYhIaGIjIyEr6+vtBqtUhKSoJGo8HcuXOrfHAqy/e3SaEJuL/kwIYNG5CZmYmbN2+iVatWiIyMNBoY/jRhaCIiImui0+kQGRkJPz8/xMbGQq3+e26YXq9HdHQ0tFot1q1bV6Uv1ZXl+9uky3MAUK1aNQwdOtTUpxMREZEFZWZmIicnB7NmzTIKTACgVqsRGRmJqKgoZGZmIjg42EJVKovJoeny5cv49ddfceXKFej1eqN9EydOLHdhREREVHGuXbsGAPD19S11v2G7oR2ZGJrWrFmDf/7zn7Czs0OtWrWgUqmkfSqViqGJiIhI4dzd3QEAWq0WAQEBJfZrtVqjdmTi4pazZs3C7NmzkZ+fj3PnzkGr1Uo/Z8+eNXeNREREZGZBQUHw9PREUlJSiStGer0eSUlJ8PLyQlBQkIUqVB6TQtOtW7cwaNCgEtdAiYiIyDrY2Nhg3Lhx0Gg0iI6ORlZWFm7duoWsrCxER0dDo9Fg7NixVXoQeFmZNHtu2rRpcHd3x4wZMyqiJqvE2XNERGSNSlunycvLC2PHjq3yyw0AlbDkgE6nw8svv4zbt28jMDAQtra2RvuXLFlS1kNaPYYmIiKyVk/ziuAVvuRAXFwcduzYgcaNGwNAiYHgREREZD1sbGy4rIAMJoWmxYsX49///jdGjBhh5nKIiIiIlMmkkdz29vbo2LGjuWshIiIiUiyTQtOkSZOwbNkyc9dCREREpFgmXZ5LT0/Hzp07sXXrVgQEBJQYCL5p0yazFEdERESkFCaFJldXV7zyyivmroWIFOxpnl1DRASYGJpWr15t7jqISMFKW8fF09MT48aNeyrWcSEiAkwc00RET4+0tDTExMTAz88P8fHx2L59O+Lj4+Hn54eYmBikpaVZukQiokohe3HLVq1aISUlBW5ubggODn7sekyHDh0yW4HWgotbUlWk0+kQGRkJPz8/xMbGGt06Sa/XIzo6GlqtFuvWreOlOiKyShWyuGXfvn1hb28v/ZmLWBJVfZmZmcjJycGsWbNK3GtSrVYjMjISUVFRyMzM5MJ4RFTlyQ5NMTEx0p/nzJlTEbUQkcJcu3YNAODr61vqfsN2QzsioqrMpDFNfn5++Ouvv0psz8vLg5+fX7mLIiJlcHd3BwBotdpS9xu2G9oREVVlJoWmc+fOQafTldheVFSEP//8s9xFEZEyBAUFwdPTE0lJSdDr9Ub79Ho9kpKS4OXlhaCgIAtVSERUecoUmn744Qf88MMPAIAdO3ZIj3/44Qds3rwZ8+fPf2Q3fmnS0tLQu3dv1KtXDyqVClu2bDHaP2LECKhUKqOfHj16GLW5du0aIiMj4ezsDFdXV4wePRo3b940apOZmYnOnTvDwcEBDRo0wKJFi0rU8u2336JJkyZwcHBAYGAgtm/fLvt9EJWXTqfD4cOHkZKSgsOHD5d6UmIJNjY2GDduHDQaDaKjo5GVlYVbt24hKysL0dHR0Gg0GDt2LAeBE9FToUzrNPXr1w8AoFKpMHz4cKN9tra28PHxweLFi2Ufr7CwEC1atMCoUaMeuVhmjx49jNaFMgxGN4iMjER2djaSk5NRXFyMkSNHYsyYMVi/fj2A+6Piw8LC0L17d6xcuRJHjx7FqFGj4OrqijFjxgAA9u7di8GDByMuLg4vv/wy1q9fj379+uHQoUNo3ry57PdDZAqlr4HUpUsXzJ07FwkJCYiKipK2e3l5Ye7cuYqokYioUggT+Pj4iKtXr5ry1EcCIDZv3my0bfjw4aJv376PfM7x48cFAHHgwAFp208//SRUKpW4dOmSEEKIhIQE4ebmJoqKiqQ206dPF40bN5Yev/baayIiIsLo2CEhIeKf//yn7Prz8/MFAJGfny/7OUSpqamia9euYubMmeLYsWOisLBQHDt2TMycOVN07dpVpKamWrpEyb1798ShQ4fEL7/8Ig4dOiTu3btn6ZKIiMqtLN/fJo1p0mq1qF279hPbBQYG4uLFi6a8hGT37t2oW7cuGjdujLFjxxoNQNdoNHB1dUWbNm2kbd27d4darcb+/fulNl26dIGdnZ3UJjw8HCdPnsT169elNt27dzd63fDwcGg0mnLVTvQ4Op0OCQkJCA0NRWxsLAICAlC9enUEBAQgNjYWoaGhWLFihaIu1QUHB6Nbt24IDg7mJTkieupU6Irg586dQ3FxscnP79GjB9auXYuUlBQsXLgQqamp6Nmzp/QlkpOTg7p16xo9p1q1anB3d5cudeTk5MDDw8OojeHxk9o8eLnkYUVFRSgoKDD6ISoLwxpIkZGRj1wDKTs7G5mZmRaqkIiIHmTSvecqy6BBg6Q/BwYGIigoCI0aNcLu3bvRrVs3C1YGxMXFYe7cuRatgawb10AiIrIuVnXvOT8/P9SuXRunT58GcH+w7JUrV4za3Lt3D9euXYOnp6fUJjc316iN4fGT2hj2l2bmzJnIz8+Xfsp7GZKePlwDiYjIulhVaPrzzz/x119/wcvLCwAQGhqKvLw8HDx4UGqzc+dO6PV6hISESG3S0tKMLhMmJyejcePGcHNzk9qkpKQYvVZycjJCQ0MfWYu9vT2cnZ2NfojKgmsgERFZF4uGpps3byIjIwMZGRkA7p9ZZ2Rk4MKFC7h58ybeffdd7Nu3D+fOnUNKSgr69u0Lf39/hIeHAwCaNm2KHj164M0330R6ejp+++03jB8/HoMGDUK9evUAAEOGDIGdnR1Gjx6NrKwsbNy4EZ9++immTp0q1TFp0iT8/PPPWLx4MU6cOIE5c+bg999/x/jx4yv9M6GnB9dAIiKyMhU5ja9mzZrizJkzj9y/a9cuAaDEz/Dhw8WtW7dEWFiYqFOnjrC1tRXe3t7izTffFDk5OUbH+Ouvv8TgwYNFzZo1hbOzsxg5cqS4ceOGUZsjR46ITp06CXt7e/HMM8+IDz/8sEQt33zzjXjuueeEnZ2dCAgIENu2bSvTe+WSA2Sq1NRUMXDgQPH8889LP4MGDVLUcgNERFVVWb6/VUIIUZ7QdefOHTg4OJS6b/369ejbty9q1KhRnpewCgUFBXBxcUF+fj4v1VGZ6XQ6ZGZm4tq1a3B3d0dQUBB7mIiIKkFZvr9Nujyn1+sxf/58PPPMM6hZsybOnj0LAJg1axZWrVoltRsyZMhTEZiIyotrIBERKZ9JoSk2NhZr1qzBokWLjBaNbN68Ob744guzFUdERESkFCaFprVr1yIxMRGRkZFGZ8QtWrTAiRMnzFYcERERkVKYtLjlpUuX4O/vX2K7Xq8v1wrgRETlxfFhRFRRTApNzZo1w549e+Dt7W20/bvvvkNwcLBZCiMiKqu0tDQkJCQY3QLJ09MT48aNQ5cuXSxYGVUUhmSqTCaFptmzZ2P48OG4dOkS9Ho9Nm3ahJMnT2Lt2rXYunWruWskInqitLQ0xMTEIDQ0FLNmzYKvry+0Wi2SkpIQExODuXPnMjhVMQzJVNlMXnJgz549mDdvHo4cOYKbN2+iVatWmD17NsLCwsxdo1XgkgNElqPT6RAZGQk/Pz/ExsYa3QBZr9cjOjoaWq0W69atYy9EFfFgSI6MjDQKyRqNhiGZZCvL97dJoenPP/9E/fr1S923b98+tG/fvqyHtHpPY2hit3jVc+fOHVy4cMEsx2rYsOEj13Azt8OHD2PKlCmIj49HQEBAif1ZWVmIiorCJ598wiEEVQBDMplTWb6/Tbo8FxYWhl9//bXEjUR/++03REREIC8vz5TDkhVht3jVdOHCBYwZM8Ysx0pMTMRzzz1nlmM9ybVr1wAAvr6+pe43bDe0oydT8klRZmYmcnJyMGvWLKPABABqtRqRkZGIiopCZmYmQzKZlUmhqX379ggLC8OuXbvg5OQE4P6XaO/evTFnzhxz1kcKxLEjVVfDhg2RmJj4yP3nz5/HggUL8P7775eYCFLasSqL4QROq9WW2tOk1WqN2tHjKf2kiCGZLMWk0PTFF19gwIAB6N27N3bs2IG9e/eiT58+iI2NxaRJk8xdIymITqdDQkICQkNDjbrFAwICEBsbi+joaKxYsQIdO3ZUzFkpyefg4CCrd8jb27vSepHkCAoKgqenJ5KSkkq9XJOUlAQvLy8EBQVZsErrYA0nRQzJZCkmLW6pVquxYcMG2Nra4sUXX0SfPn0QFxfHwGRGOp0Ohw8fRkpKCg4fPgydTmfpkgD83S0eGRn5yG7x7OxsZGZmWqhCehrZ2Nhg3Lhx0Gg0iI6ORlZWFm7duoWsrCxER0dDo9Fg7NixDPJP8PBJUUBAAKpXry6dFIWGhmLFihUW/330YEjW6/VG+xiSqSLJ7mkq7Utwzpw5GDx4MIYOHYouXbpIbfgPtXyU3DXObnFSqi5dumDu3LlISEhAVFSUtN3Ly0sRvSPWwFrGChlCckxMDKKjox85e44hmcxNdmhq2bIlVCoVHpxsZ3j8+eefIzExEUIIqFQqi5+FWDOld42zW5yUrEuXLujYsaNiBzArnTWdFDEkkyXIDk2GL0OqONYwXohjR0jpbGxsOGPKRNZ2UsSQ/PSx9KxO2aHpSTNlqPysoWuc3eJEVZc1nhQpJSSba42zylzfzNooYeiKSbPnDI4fP44LFy7g7t27Rtv79OlTrqKeVtbSNc5ucaKqiSdFpjPXGmeVub6ZNVHK0BWTQtPZs2fRv39/HD161Gick0qlAgCOaTKRNXWNs1ucqGriSZFpzLXGWWWub2YtlDR0xaTQNGnSJPj6+iIlJQW+vr5IT0/HX3/9hbfffhsff/yxuWt8alhb17hSusWJyLx4UlR21rrGmTVQ0tAVk0KTRqPBzp07Ubt2bajVaqjVanTq1AlxcXGYOHEiDh8+bO46nwrsGicipeBJESmFkoaumBSadDqddPuU2rVr4/Lly2jcuDG8vb1x8uRJsxb4tGHXOBER0d+UNHTFpNDUvHlzHDlyBL6+vggJCcGiRYtgZ2eHxMRE+Pn5mbvGpw67xomIiO5T0tAVk0JTdHQ0CgsLAQDz5s3Dyy+/jM6dO6NWrVrYuHGjWQt8WrFrnIiISFlDV0wKTeHh4dKf/f39ceLECVy7dg1ubm7SDDoiIiIic1DK0BWTQtPOnTvRoUMHowW4lDANnoiIiKomJQxdMSk09enTB/fu3UPbtm3RtWtXPP/88+jYsSMcHR3NXR8RERERAMsPXVE/uUlJ169fR0pKCnr27In09HT0798frq6u6NixI6Kjo81dIxEREZHFmRSabG1t0bFjR7z33nvYsWMH9u3bh8GDByM9PR1xcXHmrpGIiIjI4ky6PPe///0Pu3fvxu7du5GamoqioiJ07twZH3/8Mbp27WrmEqsu3uCRiJTK0neTJ1Iik0JTkyZNUKdOHUyaNAkzZsxAYGAgZ82ZgDd4JCIlUsLd5ImUyKTQNHHiRKSlpWHevHnYunUrunbtiq5du6JTp06oXr26uWussniDRyJSGqXcTZ5IiUwKTUuXLgUA5OXlYc+ePUhNTcX777+PrKwsBAcH47fffjNnjVUWb/BIREqipLvJEymRSQPBDXQ6HYqLi1FUVIQ7d+6gqKiI954jIrJShrvJR0ZGPvJu8tnZ2cjMzLRQhfS00+l0OHz4MFJSUnD48GHodLpKfX2TL8/t3r0bWVlZcHd3R5cuXfDmm2+ia9euCAwMNHeNRERUCZR0N3mihylhrJ1JoSk7OxtjxoxB165d0bx5c3PXREREFqCku8kTPUgpY+1MCk3ffvstAOD48eP4+eefcffuXaP9ffr0KX9lRGbCqdNE8ijpbvJEBkoaa2dSaNJqtejfvz8yMzOhUqkghAAAadmByr7GSPQoSujOJbIWSrqbPJGBYazdrFmzIITA4cOHjU6CIyMjERUVhczMzAq/xYrJY5p8fHzwyy+/wNfXF+np6fjrr7/w9ttv4+OPPzZ3jUQmUUp3LpE1Ucrd5IkMDGPoLl++jPnz55c4CR49erRRu4pkUmjSaDTYuXMnateuDbVaDbVajU6dOiEuLg4TJ07E4cOHzV0nUZkoqTuXyNoo4W7yRAaGMXQLFixAhw4dSpwEL1iwwKhdRTJpyQGdTgcnJycAQO3atXH58mUA99cT4pIDpAScOk1UPoa7yXfr1g3BwcEMTGQxAQEBsLGxgZubG+bNm4eAgABUr14dAQEBmDdvHtzc3GBjY1Pq5AVzM6mnqXnz5jhy5Ah8fX0REhKCRYsWwc7ODomJifDz8zN3jWRB5ro/HlC598jj1GkioqohKysLOp0OeXl5mD17domxdnl5eRBCSAtsVySTQlN0dDQKCwsBAPPmzcPLL7+Mzp07o1atWti4caNZCyTLMtf98YDKvUcep04TEVUNhpPb9957D6tWrSox1u69997DggULlDumKTw8XPqzv78/Tpw4gWvXrsHNzY037q1izHV/PMOxKgunThMRVQ2Gk9t69eohKSmpxFi7EydOGLWrSCaFptLwjL1qstb743HqNBFR1fDwSfCDl+Aq+yS4XPeeI1Iyw9Tps2fPIioqCr169UJUVBS0Wi2nThMRWQnDSbBGo0F0dDSysrJw69YtZGVlITo6GhqNBmPHjq2Uk2Cz9TQRKRGnThMRWT+lrB/G0ERVnmHqNBERWS8lnAQzNBEREZFVsPRJMEMTEREplrWuFUdVE0MTEREplrWuFUdVE0MTEVUpOp2OA/+rkCetFQfIXy+uMteKo6qJoYmIqoy0tDQkJCSUuAv6uHHjuMSElZK7VhygvPXiqOrhOk1EVCWkpaUhJiYGfn5+iI+Px/bt2xEfHw8/Pz/ExMQgLS3N0iUSkZVjaCIiq6fT6ZCQkIDQ0FDExsYa3QU9NjYWoaGhWLFiBXQ6naVLJSIrZtHQlJaWht69e6NevXpQqVTYsmWL0X4hBGbPng0vLy84Ojqie/fuOHXqlFGba9euITIyEs7OznB1dcXo0aNx8+ZNozaZmZno3LkzHBwc0KBBAyxatKhELd9++y2aNGkCBwcHBAYGYvv27WZ/v0RUMTIzM5GTk4PIyEij+wwCgFqtRmRkJLKzs5GZmWmhComoKrDomKbCwkK0aNECo0aNwiuvvFJi/6JFi/DZZ5/hyy+/hK+vL2bNmoXw8HAcP35cmjZq+GWYnJyM4uJijBw5EmPGjMH69esBAAUFBQgLC0P37t2xcuVKHD16FKNGjYKrq6s0I2Pv3r0YPHgw4uLi8PLLL2P9+vXo168fDh06hObNm1feB0JEJjHc3dzX17fU/YbtlXEXdDmUMlid0/mJysaioalnz57o2bNnqfuEEFi6dCmio6PRt29fAMDatWvh4eGBLVu2YNCgQfjjjz/w888/48CBA2jTpg0AYNmyZejVqxc+/vhj6Y7Id+/exb///W/Y2dkhICAAGRkZWLJkiRSaPv30U/To0QPvvvsuAGD+/PlITk7G8uXLsXLlykr4JIioPAw3DNdqtQgICCixX6vVGrWzJCUNVud0fqKyUezsOa1Wi5ycHHTv3l3a5uLigpCQEGg0GgwaNAgajQaurq5SYAKA7t27Q61WY//+/ejfvz80Gg26dOkCOzs7qU14eDgWLlyI69evw83NDRqNBlOnTjV6/fDw8BKXC4lImR6+C/qDl+gq+y7oj2MYrB4aGopZs2bB19cXWq0WSUlJiImJqfQbST9pOr/cqfyGYxFVdYoNTYazMA8PD6PtHh4e0r6cnBzUrVvXaH+1atXg7u5u1ObhLnvDMXNycuDm5oacnJzHvk5pioqKUFRUJD0uKCgoy9sjIjMy3AU9JiYG0dHRiIyMNAokGo0Gc+fOteh6TQ8PVjcEO8Ng9ejoaKxYsQIdO3astDrlTufnVH6i+zh7zkRxcXFwcXGRfho0aGDpkoieaoa7oJ89exZRUVHo1asXoqKioNVqK70HpzQcrE5k/RTb0+Tp6QkAyM3NhZeXl7Q9NzcXLVu2lNpcuXLF6Hn37t3DtWvXpOd7enoiNzfXqI3h8ZPaGPaXZubMmUaX9AoKChiciCxMCXdBfxRrG6xORCUptqfJ19cXnp6eSElJkbYVFBRg//79CA0NBQCEhoYiLy8PBw8elNrs3LkTer0eISEhUpu0tDQUFxdLbZKTk9G4cWO4ublJbR58HUMbw+uUxt7eHs7OzkY/RKbS6XQ4fPgwUlJScPjwYa4nVA6Gu6B369YNwcHBighMgPFg9dIoabA6EZXOoj1NN2/exOnTp6XHWq0WGRkZcHd3R8OGDTF58mTExsbi2WeflZYcqFevHvr16wcAaNq0KXr06IE333wTK1euRHFxMcaPH49BgwahXr16AIAhQ4Zg7ty5GD16NKZPn45jx47h008/xSeffCK97qRJk/D8889j8eLFiIiIwIYNG/D7778/8X5HROagpNlUVHGsZbA6VV1cYqL8LBqafv/9d7zwwgvSY8PlruHDh2PNmjWYNm0aCgsLMWbMGOTl5aFTp074+eefjf6ikpKSMH78eHTr1g1qtRr/+Mc/8Nlnn0n7XVxc8N///hdRUVFo3bo1ateujdmzZxtNs+3QoQPWr1+P6OhovPfee3j22WexZcsWrtFEFU5ps6mo4ljDYHWq2rjERPlZNDR17doVQohH7lepVJg3bx7mzZv3yDbu7u7SQpaPEhQUhD179jy2zauvvopXX3318QWTVVLKQoKl1aW02VRUsQyD1RMSEhAVFSVt9/LyYkCmCsclJspPsQPBicxByZe+DLOpZs2a9cjZVFFRUcjMzERwcLCFqiRzU/JgdarauMRE+TE0UZWl9EtfnE319DIMVici68LQRFWSNVz6stStP3Jzc5Gfn2/Sc8+fP2/0X1O5uLiUWFCWiEjpGJqoSrKGS1+WmE2Vm5uLocNeR/Hdoic3fowFCxaU6/m2dvZY99VaBicisioMTVQlWcOlL0vMpsrPz0fx3SLc9nseegcXsx23LNR38oGzqcjPz2doIiIjSl8WgaGJqiRrueu9pWZT6R1coK9Ru0KOTURkKqUvi8DQRFWSNS0kyNlURET3PWlZBED+0ggVsSwCQxNZvUd15/br1w+ff/45Jk+ejJ49e+KZZ57BpUuX8NNPP+Ho0aP45z//iTNnzhg9x1Kr3HI2FRGR/GURAMssjcDQRFbvSd25mZmZpd45fuXKlSW2Pa2r3BLR45Vn1ilgnpmnnHVqeQxNZPWe1J2r1+vx66+/Yt26dRg6dCg6depUYkbdg8ciInqQuWadAuWbecpZp5bH0ERWT053rlqtxrp169ClSxf2JBFRmXDWKRkwNBEREcnAWafE0EREVAHMtd6MpSYnEFFJDE1ERBXAXOvNcHICkXIwNBGRVVH6isEPHvtxExQsudYMEZmGoYmIrIrSVww2kLvejCXWmlEaTucna8HQRERWRekrBlPZcDo/WROGJiKyKkpfMZjKhtP5yZowNBERkcVxOj9ZA4amCsTr9EREVJnK871jju8coGp/7zA0VRBepyciospkru+d8nznAFX7e4ehqYLwOj0REVUmfu9UPIamCmYN1+nZnUtEVHVYw/eOtWJoesqxO/fppL6d91S+9tOIJ0VE5sPQ9JRjd+7TyVGbZukSqBLwpIjIvBiaCAC7cyuDkm7getu3C/SOruWuxRTq23kMbZWEJ0VE5sXQRFRJlHQDV72jK0PyU4QnRUTmwdBEVEl4A1ciIutew5ChiaiS8AauRPS0s/Y1DBmaiIiIqFJY+zg7hiYiIiKqVNY6zo6hiYiISAaub0YMTURERDJwqQxiaCIiIouzhl4crm9GDE1ERGRx1hAIuL4ZMTQREZHFsReHrAFDExERWRx7ccgaMDQRERFVIdYwPsxaMTQRERFVIbzUWHEYmoiIiKoQjg+rOAxNREREVQjHh1UchqYKxmvLREREVQNDUwWryt2URBUlNzcX+fn5Jj///PnzRv81hYuLy2Nv5mkNNRrw5I3IPBiaKhivLROVTW5uLoYOex3Fd4vKfawFCxaY/FxbO3us+2ptqaHEGmp8EH8PkNJYa5BnaKpgvLZMVDb5+fkovluE237PQ+/gYpEa1HfygbOpyM/PLzWQWEOND+LJGymNtf6bYGgiIkXSO7go/oTDGmoEePJGymOtQZ6hiayCNY0fISKix7PWIM/QRIpnbeNHiIioamJoIsWztvEj1kB9x/ReO2t+bSKi8mBoIquh9PEj1nAJ0cXFBbZ29sDZVJNfwxxs7ezh4mKZAExkKp5sEEMTAbDe6Z9KYS2XED08PLDuq7Umh7vz589jwYIFeP/99+Ht7W1ynRwfRtaEJxtkwNBEAKx3+qdSWNMlRA8Pj3IHFm9vbzz33HPlOgaRtSjvyQZgnhMOnmxYHkMTAbDe6Z9Ko/RLiNaEvZ+kJOY42QAq54SDlxErDkMTAbDe6Z9UdVWVIE1UWXgZseIpPjTNmTMHc+fONdrWuHFjnDhxAgBw584dvP3229iwYQOKiooQHh6OhIQEozOCCxcuYOzYsdi1axdq1qyJ4cOHIy4uDtWq/f32d+/ejalTpyIrKwsNGjRAdHQ0RowYUSnvkYhKsobeT/aGkZJwzGLFU3xoAoCAgAD88ssv0uMHw86UKVOwbds2fPvtt3BxccH48ePxyiuv4LfffgMA6HQ6REREwNPTE3v37kV2djZef/112Nra4oMPPgAAaLVaRERE4K233kJSUhJSUlLwxhtvwMvLC+Hh4ZX7ZokIgHX0flpLbxgv1zw9OGaxYllFaKpWrRo8PT1LbM/Pz8eqVauwfv16vPjiiwCA1atXo2nTpti3bx/at2+P//73vzh+/Dh++eUXeHh4oGXLlpg/fz6mT5+OOXPmwM7ODitXroSvry8WL14MAGjatCl+/fVXfPLJJwxNRPRISu8Ns6bLNQx2Txdr/fu2itB06tQp1KtXDw4ODggNDUVcXBwaNmyIgwcPori4GN27d5faNmnSBA0bNoRGo0H79u2h0WgQGBholLzDw8MxduxYZGVlITg4GBqNxugYhjaTJ08ud+3W+g+DiJ5M6b1h1nC5xpqCHZWftf99Kz40hYSEYM2aNWjcuDGys7Mxd+5cdO7cGceOHUNOTg7s7Ozg6upq9BwPDw/k5OQAAHJyckr8z2p4/KQ2BQUFuH37NhwdHUvUVVRUhKKiv9fkKSgoMNpv7f8wiKhqUPrlGk7nf7pY+9+34kNTz549pT8HBQUhJCQE3t7e+Oabb0oNM5UlLi6uxAD1B1n7PwwiospiTdP5qfys+e9b8aHpYa6urnjuuedw+vRpvPTSS7h79y7y8vKMeptyc3OlMVCenp5IT083OkZubq60z/Bfw7YH2zg7Oz8ymM2cORNTp06VHhcUFKBBgwZGbaz5HwYREREZU1u6gLK6efMmzpw5Ay8vL7Ru3Rq2trZISUmR9p88eRIXLlxAaGgoACA0NBRHjx7FlStXpDbJyclwdnZGs2bNpDYPHsPQxnCM0tjb28PZ2dnoh4iIiKouxYemd955B6mpqTh37hz27t2L/v37w8bGBoMHD4aLiwtGjx6NqVOnYteuXTh48CBGjhyJ0NBQtG/fHgAQFhaGZs2aYdiwYThy5Ah27NiB6OhoREVFwd7eHgDw1ltv4ezZs5g2bRpOnDiBhIQEfPPNN5gyZYol3zoREREpiOIvz/35558YPHgw/vrrL9SpUwedOnXCvn37UKdOHQDAJ598ArVajX/84x9Gi1sa2NjYYOvWrRg7dixCQ0NRo0YNDB8+HPPmzZPa+Pr6Ytu2bZgyZQo+/fRT1K9fH1988QWXGyAiIlnu3LmDCxcuPHL/+fPnjf77KA0bNoSDg4NZayPzUXxo2rBhw2P3Ozg4ID4+HvHx8Y9s4+3tje3btz/2OF27dsXhw4dNqpEqB1dfJiKlunDhAsaMGfPEdgsWLHjs/sTERI5hVTDFhyaqHNawnpQ1rL7MYEf0dGrYsCESExPNchxSLoamp5w1rSel9NWXAesIdkRkfg4ODuwhegowND3lrGHFYAOlr74MWEewIyIi0zA0keJXDLYm1hDsyHys4bI2EZkPQxMRURlZ02VtIjIfhiYiojLibZKInk4MTUREJuBtkoiePopfEZyIiIhICdjTRFaDg26Jnj5PWmkb4GrbVHkYmiyIy+7Lw0G3RE8vuSttA1xtmyoeQ5MFcdl9eTjo9unEnkUCzLfStuFYROXB0GRBXHZfPg66fXqwZ5EexJW2SUkYmiyIvwyISmLPIlHFMNeQEKDqDwt5FIYmIlIc9iwSmZ+5hoQAFTcsROkD/xmaiMyI43CISKmsYXyY0gf+MzQRmQHH4RCR0lnDkBClBzuGJiIz4DgcIqLyU3qwY2giMhOOwyEiqtoYmohIwtk1RESPxtBERBJrmF1D5sOQTFQ2DE1EJFH6IEwyL4ZkorJhaCIiidIHYZJ5MSQTlQ1DExHRU4ohmahs1JYugIiIiMgasKeJiKgCmGuQNQdYEykHQxMRUQUw1yBrDrAmUg6GJiKyKkq/oeeDxzbHIGsOsCZSDoYmIrIqSr+hpwEHWRNVPQxNRGRVOE2eiCyFoYkeiysGk9KwB4eILIWhiR6LKwYTERHdx9BEj8VLIURERPcxNNFj8VIIERHRfVwRnIiIiEgG9jSR1bOWdXuIiMi6MTSR1bOWdXuIiMi6MTSR1eNgdSIiqgwMTWT1rGWwOm/gSkRk3RiaiCoJb+BKRGTdGJqIKglv4EpEZN0YmogqibVcRiQiotJxnSYiIiIiGRiaiIiIiGRgaCIiIiKSgaGJiIiISAaGJiIiIiIZGJqIiIiIZGBoIiIiIpKBoYmIiIhIBoYmIiIiIhkYmoiIiIhkYGgiIiIikoGhiYiIiEgGhiYiIiIiGapZuoCqQggBACgoKLBwJURERCSX4Xvb8D3+OAxNZnLjxg0AQIMGDSxcCREREZXVjRs34OLi8tg2KiEnWtET6fV6XL58GU5OTlCpVGY5ZkFBARo0aICLFy/C2dnZLMc0N2uoEbCOOlmj+VhDnazRfKyhTtZoPuauUwiBGzduoF69elCrHz9qiT1NZqJWq1G/fv0KObazs7Oi/wED1lEjYB11skbzsYY6WaP5WEOdrNF8zFnnk3qYDDgQnIiIiEgGhiYiIiIiGRiaFMze3h4xMTGwt7e3dCmPZA01AtZRJ2s0H2uokzWajzXUyRrNx5J1ciA4ERERkQzsaSIiIiKSgaGJiIiISAaGJiIiIiIZGJqIiIiIZGBoUqC0tDT07t0b9erVg0qlwpYtWyxdUglxcXFo27YtnJycULduXfTr1w8nT560dFlGVqxYgaCgIGkBtNDQUPz000+WLuuxPvzwQ6hUKkyePNnSpRiZM2cOVCqV0U+TJk0sXVYJly5dwtChQ1GrVi04OjoiMDAQv//+u6XLMuLj41Pis1SpVIiKirJ0aRKdTodZs2bB19cXjo6OaNSoEebPny/r3lyV6caNG5g8eTK8vb3h6OiIDh064MCBAxat6Um/v4UQmD17Nry8vODo6Iju3bvj1KlTiqpx06ZNCAsLQ61ataBSqZCRkVGp9T2pxuLiYkyfPh2BgYGoUaMG6tWrh9dffx2XL1+u8LoYmhSosLAQLVq0QHx8vKVLeaTU1FRERUVh3759SE5ORnFxMcLCwlBYWGjp0iT169fHhx9+iIMHD+L333/Hiy++iL59+yIrK8vSpZXqwIED+PzzzxEUFGTpUkoVEBCA7Oxs6efXX3+1dElGrl+/jo4dO8LW1hY//fQTjh8/jsWLF8PNzc3SpRk5cOCA0eeYnJwMAHj11VctXNnfFi5ciBUrVmD58uX4448/sHDhQixatAjLli2zdGlG3njjDSQnJ+Orr77C0aNHERYWhu7du+PSpUsWq+lJv78XLVqEzz77DCtXrsT+/ftRo0YNhIeH486dO4qpsbCwEJ06dcLChQsrrabSanhUjbdu3cKhQ4cwa9YsHDp0CJs2bcLJkyfRp0+fii9MkKIBEJs3b7Z0GU905coVAUCkpqZaupTHcnNzE1988YWlyyjhxo0b4tlnnxXJycni+eefF5MmTbJ0SUZiYmJEixYtLF3GY02fPl106tTJ0mWU2aRJk0SjRo2EXq+3dCmSiIgIMWrUKKNtr7zyioiMjLRQRSXdunVL2NjYiK1btxptb9WqlXj//fctVJWxh39/6/V64enpKT766CNpW15enrC3txdff/21BSp8/HeMVqsVAMThw4crtaaHyfkeTE9PFwDE+fPnK7QW9jSRWeTn5wMA3N3dLVxJ6XQ6HTZs2IDCwkKEhoZaupwSoqKiEBERge7du1u6lEc6deoU6tWrBz8/P0RGRuLChQuWLsnIDz/8gDZt2uDVV19F3bp1ERwcjH/961+WLuux7t69i3Xr1mHUqFFmu9G3OXTo0AEpKSn43//+BwA4cuQIfv31V/Ts2dPClf3t3r170Ol0cHBwMNru6OiouF5QA61Wi5ycHKP/z11cXBASEgKNRmPByqxffn4+VCoVXF1dK/R1eMNeKje9Xo/JkyejY8eOaN68uaXLMXL06FGEhobizp07qFmzJjZv3oxmzZpZuiwjGzZswKFDhyw+FuNxQkJCsGbNGjRu3BjZ2dmYO3cuOnfujGPHjsHJycnS5QEAzp49ixUrVmDq1Kl47733cODAAUycOBF2dnYYPny4pcsr1ZYtW5CXl4cRI0ZYuhQjM2bMQEFBAZo0aQIbGxvodDosWLAAkZGRli5N4uTkhNDQUMyfPx9NmzaFh4cHvv76a2g0Gvj7+1u6vFLl5OQAADw8PIy2e3h4SPuo7O7cuYPp06dj8ODBFX6jYYYmKreoqCgcO3ZMkWd3jRs3RkZGBvLz8/Hdd99h+PDhSE1NVUxwunjxIiZNmoTk5OQSZ8xK8mAPQ1BQEEJCQuDt7Y1vvvkGo0ePtmBlf9Pr9WjTpg0++OADAEBwcDCOHTuGlStXKjY0rVq1Cj179kS9evUsXYqRb775BklJSVi/fj0CAgKQkZGByZMno169eor6LL/66iuMGjUKzzzzDGxsbNCqVSsMHjwYBw8etHRpVEmKi4vx2muvQQiBFStWVPjr8fIclcv48eOxdetW7Nq1C/Xr17d0OSXY2dnB398frVu3RlxcHFq0aIFPP/3U0mVJDh48iCtXrqBVq1aoVq0aqlWrhtTUVHz22WeoVq0adDqdpUsslaurK5577jmcPn3a0qVIvLy8SoThpk2bKu4yosH58+fxyy+/4I033rB0KSW8++67mDFjBgYNGoTAwEAMGzYMU6ZMQVxcnKVLM9KoUSOkpqbi5s2buHjxItLT01FcXAw/Pz9Ll1YqT09PAEBubq7R9tzcXGkfyWcITOfPn0dycnKF9zIBDE1kIiEExo8fj82bN2Pnzp3w9fW1dEmy6PV6FBUVWboMSbdu3XD06FFkZGRIP23atEFkZCQyMjJgY2Nj6RJLdfPmTZw5cwZeXl6WLkXSsWPHEste/O9//4O3t7eFKnq81atXo27duoiIiLB0KSXcunULarXx14ONjQ30er2FKnq8GjVqwMvLC9evX8eOHTvQt29fS5dUKl9fX3h6eiIlJUXaVlBQgP379ytyrKWSGQLTqVOn8Msvv6BWrVqV8rq8PKdAN2/eNDqD12q1yMjIgLu7Oxo2bGjByv4WFRWF9evX4/vvv4eTk5N0Pd7FxQWOjo4Wru6+mTNnomfPnmjYsCFu3LiB9evXY/fu3dixY4elS5M4OTmVGAdWo0YN1KpVS1Hjw9555x307t0b3t7euHz5MmJiYmBjY4PBgwdbujTJlClT0KFDB3zwwQd47bXXkJ6ejsTERCQmJlq6tBL0ej1Wr16N4cOHo1o15f0a7t27NxYsWICGDRsiICAAhw8fxpIlSzBq1ChLl2Zkx44dEEKgcePGOH36NN599100adIEI0eOtFhNT/r9PXnyZMTGxuLZZ5+Fr68vZs2ahXr16qFfv36KqfHatWu4cOGCtO6R4WTE09Oz0nrEHlejl5cXBgwYgEOHDmHr1q3Q6XTSd5C7uzvs7OwqrrAKnZtHJtm1a5cAUOJn+PDhli5NUlp9AMTq1astXZpk1KhRwtvbW9jZ2Yk6deqIbt26if/+97+WLuuJlLjkwMCBA4WXl5ews7MTzzzzjBg4cKA4ffq0pcsq4ccffxTNmzcX9vb2okmTJiIxMdHSJZVqx44dAoA4efKkpUspVUFBgZg0aZJo2LChcHBwEH5+fuL9998XRUVFli7NyMaNG4Wfn5+ws7MTnp6eIioqSuTl5Vm0pif9/tbr9WLWrFnCw8ND2Nvbi27dulX6v4Mn1bh69epS98fExCiiRsNSCKX97Nq1q0LrUgmhsCVeiYiIiBSIY5qIiIiIZGBoIiIiIpKBoYmIiIhIBoYmIiIiIhkYmoiIiIhkYGgiIiIikoGhiYiIiEgGhiYiogo0Z84ctGzZ0tJlEJEZMDQREZmJSqXCli1bLF0GEVUQhiYiIiIiGRiaiKjK6dq1KyZMmIDJkyfDzc0NHh4e+Ne//oXCwkKMHDkSTk5O8Pf3x08//SQ9JzU1Fe3atYO9vT28vLwwY8YM3Lt3z+iYEydOxLRp0+Du7g5PT0/MmTNH2u/j4wMA6N+/P1QqlfTY4KuvvoKPjw9cXFwwaNAg3LhxoyI/AiKqAAxNRFQlffnll6hduzbS09MxYcIEjB07Fq+++io6dOiAQ4cOISwsDMOGDcOtW7dw6dIl9OrVC23btsWRI0ewYsUKrFq1CrGxsSWOWaNGDezfvx+LFi3CvHnzkJycDAA4cOAAAGD16tXIzs6WHgPAmTNnsGXLFmzduhVbt25FamoqPvzww8r7MIjILHjDXiKqcrp27QqdToc9e/YAAHQ6HVxcXPDKK69g7dq1AICcnBx4eXlBo9Hgxx9/xH/+8x/88ccfUKlUAICEhARMnz4d+fn5UKvVJY4JAO3atcOLL74oBSCVSoXNmzejX79+Ups5c+bgo48+Qk5ODpycnAAA06ZNQ1paGvbt21cZHwcRmQl7moioSgoKCpL+bGNjg1q1aiEwMFDa5uHhAQC4cuUK/vjjD4SGhkqBCQA6duyImzdv4s8//yz1mADg5eWFK1euPLEWHx8fKTCV5XlEpCwMTURUJdna2ho9VqlURtsMAUmv15frmHKeb+rziEhZGJqI6KnXtGlTaDQaPDha4bfffoOTkxPq168v+zi2trbQ6XQVUSIRKQBDExE99caNG4eLFy9iwoQJOHHiBL7//nvExMRg6tSpUKvl/5r08fFBSkoKcnJycP369QqsmIgsgaGJiJ56zzzzDLZv34709HS0aNECb731FkaPHo3o6OgyHWfx4sVITk5GgwYNEBwcXEHVEpGlcPYcERERkQzsaSIiIiKSgaGJiIiISAaGJiIiIiIZGJqIiIiIZGBoIiIiIpKBoYmIiIhIBoYmIiIiIhkYmoiIiIhkYGgiIiIikoGhiYiIiEgGhiYiIiIiGRiaiIiIiGT4fwDYtOtaONzTAAAAAElFTkSuQmCC"
+class="
+"
+>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>Recall, <code>awake_time</code> tracks the amount of time in bed but not asleep.</p>
+<p>Interestingly, it is easy to identify that there is a negative correlation between <code>awake_time</code> and sleep <code>score</code>. Whenever awake time increases, for example in May (5), sleep score decreases during the same month.</p>
+
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>Some of the features that likely have the biggest effect on sleep score are probably going to be features that measure sleep duration. A plot of sleep score against sleep durations would be useful at determining by how much.</p>
 
 </div>
 </div>
@@ -18623,55 +19097,18 @@ class="
 
 </div>
 
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
-<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-     <div class="CodeMirror cm-s-jupyter">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">bio_sleep_df</span><span class="p">[</span><span class="s1">'steps'</span><span class="p">]</span><span class="o">.</span><span class="n">describe</span><span class="p">()</span>
-</pre></div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>R.E.M. and Deep sleep seem to have the biggest positive correlation to sleep score. Light also does but is much less obvious than the others. Total sleep has the biggest but since it's just a linear combination of the others, that makes sense (more on this later).</p>
 
-     </div>
 </div>
 </div>
 </div>
-
-<div class="jp-Cell-outputWrapper">
-<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
-</div>
-
-
-<div class="jp-OutputArea jp-Cell-outputArea">
-
-<div class="jp-OutputArea-child">
-
-    
-    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[&nbsp;]:</div>
-
-
-
-
-<div class="jp-RenderedText jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/plain">
-<pre>count      353.000000
-mean     10819.963173
-std       3447.932402
-min       1601.000000
-25%       8522.000000
-50%      10388.000000
-75%      12708.000000
-max      23382.000000
-Name: steps, dtype: float64</pre>
-</div>
-
-</div>
-
-</div>
-
-</div>
-
 </div>
 <div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper">
@@ -18708,7 +19145,7 @@ Name: steps, dtype: float64</pre>
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
-<p>It's time to look at each feature in relation to each other and determine if there will be any correlation issues using this feature set in the model fitting.</p>
+<p>It's time to look at each feature in relation to each other and determine if there will be any correlation/collinearity issues using this feature set in the model fitting.</p>
 
 </div>
 </div>
@@ -18794,11 +19231,23 @@ class="
 </ul>
 <p>Moving past what is just correlated to <code>score</code> we also need to be aware of any corelation between features which will introduce collinearity between predictors/features into our models. In most cases, this reduces the effectiveness in a model.</p>
 <ul>
-<li><code>total_sleep_duration</code> is logically highly correlated to the various types of other sleep durations and other features directly related to sleep. This is due to total sleep being a linear combinations of the others. (Adding deep, light, rem sleep together equals total sleep.)</li>
+<li><code>total_sleep_duration</code> is logically highly correlated to the various types of other sleep durations and other features directly related to sleep. This is due to total sleep being a linear combinations of the others. (Adding deep, light, rem sleep together equals total sleep.) It seems better practice to keep the 3 specific types of sleep as they contain more specific information.</li>
 <li><code>time_in_bed</code> also has this issue for the same reasons.</li>
 <li><code>lowest_heart_rate</code>, <code>average_hrv</code>, and a few others also have high correlation between them.</li>
 </ul>
-<p>Some or many of these features will have to be removed, but in most cases only one of the pairs that show correlation.</p>
+<p>Some or many of these features will have to be removed, but in most cases we only want to remove one feature out of the pairs that show correlation.</p>
+
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>Before removing features let's look at one, <code>bedtime_start_delta</code>, that has a small correlation score of -3 and try to determine if there is significance in keeping it for our model.</p>
 
 </div>
 </div>
@@ -19084,7 +19533,7 @@ The means of the two samples are not equal!
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
-<p>This hypothesis test shows that the mean sleep scores of the two <code>bedtime_start_delta</code> population sets (late and early bedtimes) are different, and does in fact have an effect on sleep <code>score</code> and is a feature worth adding in the models.</p>
+<p>This hypothesis test shows that the mean sleep scores of the two <code>bedtime_start_delta</code> population sets (late and early bedtimes) are different. Meaning, <code>bedtime_start_delta</code> does in fact have an effect on sleep <code>score</code> and is a feature worth adding in the models.</p>
 
 </div>
 </div>
@@ -19145,10 +19594,10 @@ The means of the two samples are not equal!
   <th>Method:</th>             <td>Least Squares</td>  <th>  F-statistic:       </th> <td>   101.0</td> 
 </tr>
 <tr>
-  <th>Date:</th>             <td>Wed, 07 Feb 2024</td> <th>  Prob (F-statistic):</th> <td>1.30e-137</td>
+  <th>Date:</th>             <td>Thu, 08 Feb 2024</td> <th>  Prob (F-statistic):</th> <td>1.30e-137</td>
 </tr>
 <tr>
-  <th>Time:</th>                 <td>16:02:16</td>     <th>  Log-Likelihood:    </th> <td> -869.51</td> 
+  <th>Time:</th>                 <td>14:17:41</td>     <th>  Log-Likelihood:    </th> <td> -869.51</td> 
 </tr>
 <tr>
   <th>No. Observations:</th>      <td>   353</td>      <th>  AIC:               </th> <td>   1791.</td> 
@@ -19278,7 +19727,7 @@ The means of the two samples are not equal!
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
-<p>Unsurprisingly, this shows a deeply flawed model when using all available features. There is a huge collinearity and multicollinearity issue between the predictor features currently fitted into this model indicated by the Condition Number = 1.00e+16. Also, while the adjust R2 and F-stat p-values indicate a well-fitted model, we can see the feature's t-test p-values indicate almost no features show significance.</p>
+<p>Unsurprisingly, this shows a deeply flawed model when using all available features. There is a huge collinearity and multicollinearity issue between the predictor features currently fitted into this model indicated by the Condition Number = 1.00e+16. Also, while the adjust R2 and F-stat p-values indicate a well-fitted model, we can see the feature's t-test p-values indicate almost no features show significance, but this is likely only due to the previously mentioned collinearity and multicollinearity issues.</p>
 <p>We will remove redundant and insignificant features from our dataset and refit this model after to see how our changes affect the model's performance.</p>
 
 </div>
@@ -19292,6 +19741,18 @@ The means of the two samples are not equal!
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
 <h4 id="Feature-Selection/Removal">Feature Selection/Removal<a class="anchor-link" href="#Feature-Selection/Removal">&#182;</a></h4>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>Now that we've done the work to understand the data, we can use what we've learned above to make decisions on which features to keep or remove.</p>
+
 </div>
 </div>
 </div>
@@ -19635,8 +20096,7 @@ $$Z = \frac{(X - \bar{X})}{S}$$<p>Centers inputs around 0 with the sample mean, 
 <div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">matplotlib.colors</span> <span class="kn">import</span> <span class="n">Normalize</span>
-<span class="k">class</span> <span class="nc">MidpointNormalize</span><span class="p">(</span><span class="n">Normalize</span><span class="p">):</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="k">class</span> <span class="nc">MidpointNormalize</span><span class="p">(</span><span class="n">Normalize</span><span class="p">):</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">midpoint</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">clip</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">midpoint</span> <span class="o">=</span> <span class="n">midpoint</span>
@@ -19723,6 +20183,131 @@ $$Z = \frac{(X - \bar{X})}{S}$$<p>Centers inputs around 0 with the sample mean, 
 </div>
 </div>
 </div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<h4 id="Model-Baseline-Metrics">Model Baseline Metrics<a class="anchor-link" href="#Model-Baseline-Metrics">&#182;</a></h4><p>An important thing to set before initializing models is an expected baseline to which we can compare performance. At the very least, our models have to improve on these metrics.</p>
+
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<h5 id="Classification-Baseline:">Classification Baseline:<a class="anchor-link" href="#Classification-Baseline:">&#182;</a></h5><p>A useful metric for classification is Zero Rate which is a "model" that always predicts the most populous class.</p>
+
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+     <div class="CodeMirror cm-s-jupyter">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Calculate the random chance baseline for our classification models.</span>
+<span class="c1"># 1 / number of classes</span>
+<span class="n">random_base_class</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">bin_map_custom</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"The random chance baseline for classification models is: </span><span class="si">{</span><span class="n">random_base_class</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="c1"># Calculate the Zero Rate baseline for our classification models.</span>
+<span class="n">zero_rate_base_class</span> <span class="o">=</span> <span class="n">y_train_bin</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">y_train_bin</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"The Zero Rate accuracy baseline for classification models that always chooses the most populous class is: </span><span class="si">{</span><span class="n">zero_rate_base_class</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</pre></div>
+
+     </div>
+</div>
+</div>
+</div>
+
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+
+
+<div class="jp-OutputArea jp-Cell-outputArea">
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+
+
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
+<pre>The random chance baseline for classification models is: 0.16666666666666666
+The Zero Rate accuracy baseline for classification models that always chooses the most populous class is: 0.2491103202846975
+</pre>
+</div>
+</div>
+
+</div>
+
+</div>
+
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<h5 id="Regression-Baseline:">Regression Baseline:<a class="anchor-link" href="#Regression-Baseline:">&#182;</a></h5><p>A good baseline for regression models is to identify what metrics will be used to evaluate your regression models, then use the mean or median to measure a baseline of that metric.</p>
+<p>For example, measure the Mean Absolute Error (MAE) if a "model" always predicted values of the median of the target variable (sleep <code>score</code>).</p>
+
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+     <div class="CodeMirror cm-s-jupyter">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Calculate the Zero Rate baseline for our classification models.</span>
+<span class="n">y_pred_baseline</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">y_train</span><span class="p">[</span><span class="s1">'score'</span><span class="p">],</span> <span class="n">fill_value</span> <span class="o">=</span> <span class="n">y_train</span><span class="p">[</span><span class="s1">'score'</span><span class="p">]</span><span class="o">.</span><span class="n">median</span><span class="p">(),</span> <span class="n">dtype</span> <span class="o">=</span> <span class="nb">float</span><span class="p">)</span>
+<span class="n">mae_baseline_regress</span> <span class="o">=</span> <span class="n">mean_absolute_error</span><span class="p">(</span><span class="n">y_train</span><span class="p">[</span><span class="s1">'score'</span><span class="p">],</span> <span class="n">y_pred_baseline</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"The baseline Mean Absolute Error (MAE) for regression models is: </span><span class="si">{</span><span class="n">mae_baseline_regress</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</pre></div>
+
+     </div>
+</div>
+</div>
+</div>
+
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+
+
+<div class="jp-OutputArea jp-Cell-outputArea">
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+
+
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
+<pre>The baseline Mean Absolute Error (MAE) for regression models is: 6.249110320284697
+</pre>
+</div>
+</div>
+
+</div>
+
+</div>
+
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs  ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
@@ -19810,10 +20395,10 @@ $$Z = \frac{(X - \bar{X})}{S}$$<p>Centers inputs around 0 with the sample mean, 
   <th>Method:</th>             <td>Least Squares</td>  <th>  F-statistic:       </th> <td>   108.7</td> 
 </tr>
 <tr>
-  <th>Date:</th>             <td>Wed, 07 Feb 2024</td> <th>  Prob (F-statistic):</th> <td>3.15e-110</td>
+  <th>Date:</th>             <td>Thu, 08 Feb 2024</td> <th>  Prob (F-statistic):</th> <td>3.15e-110</td>
 </tr>
 <tr>
-  <th>Time:</th>                 <td>16:02:16</td>     <th>  Log-Likelihood:    </th> <td> -696.78</td> 
+  <th>Time:</th>                 <td>14:17:41</td>     <th>  Log-Likelihood:    </th> <td> -696.78</td> 
 </tr>
 <tr>
   <th>No. Observations:</th>      <td>   281</td>      <th>  AIC:               </th> <td>   1432.</td> 
@@ -20139,6 +20724,18 @@ C: 1024.0, Gamma: 0.001124953927697749, Validation R2 Score: 0.8797566276176538
 </div>
 </div>
 </div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>A decision tree with no parameter changes is a good baseline</p>
+
+</div>
+</div>
+</div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
@@ -20151,8 +20748,6 @@ C: 1024.0, Gamma: 0.001124953927697749, Validation R2 Score: 0.8797566276176538
 <span class="n">models_classification</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dt_classifier</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">dt_classifier</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train_bin</span><span class="p">))</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">dt_classifier</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">X_test</span><span class="p">,</span> <span class="n">y_test_bin</span><span class="p">))</span>
-<span class="c1">#path = dt_classifier.cost_complexity_pruning_path(X_train, y_train)</span>
-<span class="c1">#ccp_alphas, impurities = path.ccp_alphas, path.impurities</span>
 </pre></div>
 
      </div>
@@ -20534,9 +21129,11 @@ class="
             <span class="n">X_test_temp</span> <span class="o">=</span> <span class="n">X_test</span>
 
         <span class="n">model_name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">mod</span><span class="p">)</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="s1">'('</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">model_score</span> <span class="o">=</span> <span class="n">mod</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">X_test_temp</span><span class="p">,</span> <span class="n">y_test_bin</span><span class="p">)</span>
+        <span class="n">accuracy_score</span> <span class="o">=</span> <span class="n">mod</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">X_test_temp</span><span class="p">,</span> <span class="n">y_test_bin</span><span class="p">)</span>
+        <span class="n">f1score</span> <span class="o">=</span> <span class="n">f1_score</span><span class="p">(</span><span class="n">y_test_bin</span><span class="p">,</span> <span class="n">mod</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_test_temp</span><span class="p">),</span> <span class="n">average</span> <span class="o">=</span> <span class="s1">'weighted'</span><span class="p">)</span>
         <span class="c1"># Set scores to model in dictionary.</span>
-        <span class="n">model_scores</span><span class="p">[</span><span class="n">model_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'Accuracy'</span><span class="p">:</span> <span class="n">model_score</span><span class="p">}</span>
+        <span class="n">model_scores</span><span class="p">[</span><span class="n">model_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'Accuracy'</span><span class="p">:</span> <span class="n">accuracy_score</span><span class="p">,</span>
+                                    <span class="s1">'F1_Score(class_weighted)'</span><span class="p">:</span> <span class="n">f1score</span><span class="p">}</span>
 
     <span class="k">return</span> <span class="n">model_scores</span>
 
@@ -20915,6 +21512,74 @@ class="
 
 </div>
 
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>Models have been sorted by Mean Absolute Error (MAE).</p>
+<ul>
+<li>The Support Vector Machine performed the best across all metrics except Adjusted R2.</li>
+<li>Comparing the two Linear Regression models you can see that centering and standardizing the predictor features improved the R2 score.</li>
+</ul>
+<p>This looks great, if you recall our baseline for regression models was measuring MAE with the median sleep score of the training data (see below).</p>
+
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+     <div class="CodeMirror cm-s-jupyter">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"The baseline Mean Absolute Error (MAE) for regression models is: </span><span class="si">{</span><span class="n">mae_baseline_regress</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</pre></div>
+
+     </div>
+</div>
+</div>
+</div>
+
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+
+
+<div class="jp-OutputArea jp-Cell-outputArea">
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+
+
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
+<pre>The baseline Mean Absolute Error (MAE) for regression models is: 6.249110320284697
+</pre>
+</div>
+</div>
+
+</div>
+
+</div>
+
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>The SVM has improved that error by over 4. All models show improvements to this baseline.</p>
+
+</div>
+</div>
+</div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
@@ -20959,6 +21624,23 @@ class="
 
 </div>
 
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>This graph and the following gives a good view on how each method handles different ranges of sleep score.</p>
+<ul>
+<li>This graph shows how similar linear, ridge, and lasso performs with this dataset. Though no hyperparameter tuning was performed on Ridge or Lasso's alpha or tolerance values.</li>
+<li>Comparing the Mean Absolute Error (MAE), we can visually see how much tighter the predictions are in relation to the ground truth coming from the reduction of 0.2 MAE in the Support Vector Machine (SVR).</li>
+<li>The Random Forest model really struggles with prediction at the ends of the sleep score distribution, but is comparable to other methods close to the middle of the distribution. This is likely due to the majority of the data is concentrated around the median score of 77. More data would likely improve this model (and the others) substantially, especially in the tails.</li>
+</ul>
+
+</div>
+</div>
+</div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
@@ -21003,6 +21685,18 @@ class="
 
 </div>
 
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>This graph illustrates the same as the previous and helps identify where the models performs best throughout the distribution. In this case it is also apparent which model performed best based on which plot concentrates the most points around the 45 degree line.</p>
+
+</div>
+</div>
+</div>
 </div>
 <div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper">
@@ -21077,32 +21771,39 @@ class="
     <tr style="text-align: right;">
       <th></th>
       <th>Accuracy</th>
+      <th>F1_Score(class_weighted)</th>
     </tr>
   </thead>
   <tbody>
     <tr>
       <th>SVC</th>
       <td>0.633803</td>
+      <td>0.626915</td>
     </tr>
     <tr>
       <th>LogisticRegression</th>
       <td>0.605634</td>
+      <td>0.607407</td>
     </tr>
     <tr>
       <th>RandomForestClassifier</th>
       <td>0.563380</td>
+      <td>0.538434</td>
     </tr>
     <tr>
       <th>RidgeClassifier</th>
       <td>0.436620</td>
+      <td>0.376509</td>
     </tr>
     <tr>
       <th>DecisionTreeClassifier</th>
       <td>0.309859</td>
+      <td>0.304995</td>
     </tr>
     <tr>
       <th>AdaBoostClassifier</th>
       <td>0.239437</td>
+      <td>0.174365</td>
     </tr>
   </tbody>
 </table>
@@ -21115,6 +21816,72 @@ class="
 
 </div>
 
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>The baseline accuracy for classifications models was using the Zero Rate, or a model that only ever predicts the most frequent class in the training data (see below).</p>
+
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+     <div class="CodeMirror cm-s-jupyter">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"The Zero Rate baseline for classification models that always chooses the most populous class is: </span><span class="si">{</span><span class="n">zero_rate_base_class</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</pre></div>
+
+     </div>
+</div>
+</div>
+</div>
+
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+
+
+<div class="jp-OutputArea jp-Cell-outputArea">
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+
+
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
+<pre>The Zero Rate baseline for classification models that always chooses the most populous class is: 0.2491103202846975
+</pre>
+</div>
+</div>
+
+</div>
+
+</div>
+
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>So our baseline accuracy rate of ~ 0.25 has been beaten quite a bit with the SVM accuracy score of ~ 0.63.</p>
+<ul>
+<li>AdaBoost in this case is the only model not to beat that metric, though it beats the random chance of $\frac{1}{6}$.</li>
+</ul>
+
+</div>
+</div>
+</div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
@@ -21159,6 +21926,22 @@ class="
 
 </div>
 
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<ul>
+<li>The Support Vector Machine (SVC) and Logistic Regression models performed the best. The majority of misclassified test samples in these models are being classified in adjacent classes.</li>
+<li>The Random Forest model looks to be converging on being well-fit as well.</li>
+<li>More data would likely help these models as well.</li>
+</ul>
+
+</div>
+</div>
+</div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
@@ -21210,7 +21993,201 @@ class="
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>Because we have imbalanced classes, the best metric to compare these classification models is ROC Curve / AUC. Though, in this case the rankings do align with the Accuracy score. Accuracy score, however, doesn't show the full story on how the models are predicting with concern to False Positive Rate (FPR) and True Positive Rate (TPR) metrics.</p>
+
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+     <div class="CodeMirror cm-s-jupyter">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s1">'Best Regression Model (by Mean Absolute Error (MAE)):'</span><span class="p">)</span> 
+<span class="n">display</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">results_regression</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span> <span class="o">=</span> <span class="s1">'MAE'</span><span class="p">)</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span> <span class="p">:])</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'-----------------------------------------------------'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Best Classification Model (by Accuracy Score):'</span><span class="p">)</span>
+<span class="n">display</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">results_classification</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span> <span class="o">=</span> <span class="s1">'Accuracy'</span><span class="p">,</span> <span class="n">ascending</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span> <span class="p">:])</span>
+</pre></div>
+
+     </div>
+</div>
+</div>
+</div>
+
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+
+
+<div class="jp-OutputArea jp-Cell-outputArea">
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+
+
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
+<pre>Best Regression Model (by Mean Absolute Error (MAE)):
+</pre>
+</div>
+</div>
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+
+
+
+<div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output " data-mime-type="text/html">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>R2</th>
+      <th>Adj_R2</th>
+      <th>RMSE</th>
+      <th>MAE</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>SVR</th>
+      <td>0.866523</td>
+      <td>0.820319</td>
+      <td>2.526703</td>
+      <td>2.041957</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+
+</div>
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+
+
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
+<pre>-----------------------------------------------------
+Best Classification Model (by Accuracy Score):
+</pre>
+</div>
+</div>
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+
+
+
+<div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output " data-mime-type="text/html">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Accuracy</th>
+      <th>F1_Score(class_weighted)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>SVC</th>
+      <td>0.633803</td>
+      <td>0.626915</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
 <h3 id="Conclusion">Conclusion<a class="anchor-link" href="#Conclusion">&#182;</a></h3><hr>
+<p><strong>Analyzing the Results and Regression vs Classification:</strong></p>
+<p>At a glance and through several iterations of training/validation the Support Vector Machines (SVM) were consistently at the top in both regression and classification. Something to note is not all these models were fitted using cross-validation which potentially could improve the others that weren't.</p>
+<p><strong>The short answer:</strong></p>
+<p>This dataset is currently small and it seems many of the models would benefit from a larger and more balanced dataset. Currently the data was split in a 80/20 training testing split which totaled 281 and 71 respectively. This fact limited the ability to perform cross-validations and compromises were made to allow for an adequate test set size. As this dataset increases in size, all the models will likely see reduced errors and better fits.</p>
+<p>There is no true way to compare a regression model and classification model. Therefore, if the data you're using is originally formatted for regression and the problem you're trying to solve requires a quantitative answer, you should do regression. The exception is if you desire a categorical prediction instead, which you could still perform regression and then turn the prediction into a categorical label. Regression makes the most sense for predicting sleep scores with this dataset. It also gives us the most interpretability of the model given that we know our margin of error compared to categorical bins with fairly arbitrary edge decisions.</p>
+<p>The SVM regression model scored the best across all metrics except the Adjusted R2, beat out by the linear regression model with scaled features. The Mean Absolute Error (MAE) baseline score was improved from ~6.2 to ~2.0 indicating a large reduction in error.</p>
+<p>MAE or Root Mean Squared Error (RMSE) makes the most sense to compare the regression models here because it gives the clearest picture of how much error predictions will have on average and aligns well with the target variable <code>score</code>, giving a highly interpretable margin on predictions. MAE is the choice here as the data still has outliers given its small size that are effects RMSE.</p>
+<p>Interestingly, the linear regression models also performed well too. Further tuning of these models would be beneficial.</p>
+<p><strong>The long answer / Tangent:</strong></p>
+<p>As was discussed before there is a lot to be said on the subject of taking what is a regression task and casting it into the space of a classification task. It could be argued that the target variable <code>score</code> as a ground truth is fuzzy on whether it is a proper quantitative measure. This is because we do not know the methods it was obtained by Oura, and if it makes sense to measure sleep in discrete values 0-100. Not to mention, even in a medical observational sleep-study, the science of measuring the sleep quality relies on measuring metrics of several biological systems that are correlated to sleep; only achieving a best approximation itself.</p>
+<p>However, as the user of the Oura Ring now for over one year, I see a high amount of correlation between their sleep scores and how I perceived the previous night's sleep. The question to be asked here is how much of a difference is, say, a score of 81 vs 85 and what would be lost changing from discrete values to categorical binning of the target variable.</p>
+<p>To review what was done during data preparation, the sleep <code>score</code> values are integers which range from 0-100 (mostly distributed around 60-90) and were binned into ordinal categorical scoring intervals to be used in classification. For this run the following was used:
+  <p><center><u>Binning Intervals Used in Training:</u></p>&lt;/center&gt;
+  <p><center>[0.000, 64.395, 72.798, 77.000, 81.202, 89.605, 100.000]</p>&lt;/center&gt;
+  <p><center>['Worst', 'Bad', 'Below Avg', 'Above Avg', 'Good', 'Best']</p>&lt;/center&gt;</p>
+<p>This does several things to change our predictions:</p>
+<ul>
+<li>Information is lost based on on the bin size chosen and where the interval edges end up.</li>
+<li>Quantitative relationships between predictors and the, now categorical target variable, are lost.</li>
+<li>Easy to interpret answers, 'Bad' or 'Above Avg', but only matters if accuracy in predictions is high. Much better in this case to have a more specific answer with expected easy to interpret errors.</li>
+</ul>
+<p>Based on the results above we can see that regression gives us more interpretable and better results. Why is this true?</p>
+<ol>
+<li><p>Interpretability</p>
+<ul>
+<li>With a Mean Absolute Error (MAE) score of ~ 2.04 that means on average predictions will only be off by that amount. A regression model predicted score of 76 will likely be 76 $\pm$ 2.</li>
+<li>Compared to the classification model a prediction of 76 equates to the 'Below Avg' bin but the model only has a ~ 63.4 accuracy score, consistently misclassifying to 'Above Avg' or 'Bad', and in one case during testing to 'Worst' - equating to wide ranges of scores.</li>
+</ul>
+</li>
+<li><p>Regression is the better model for this task.</p>
+<ul>
+<li>As evidenced in the observed vs predicted plot, you can see how tightly packed the predictions are to the ground truth.</li>
+<li>We have to assume there is a difference in ground truth values only differing by 1, and information is lost when smoothing that difference over.</li>
+</ul>
+</li>
+</ol>
 
 </div>
 </div>
