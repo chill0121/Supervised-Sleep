@@ -27,6 +27,8 @@
   - [X] Choose logistic regression or regression and make a case for why.
 - [ ] Ensemble solution?
 - [X] Combine X and y DFs into one and rework train/test split.
+- [ ] Address justification for EDA before train/test split.
+- [ ] Prediction Intervals at each prediction ,using predict(SE = True), on plot.
 
 **TODO: oura_sleep_2024-01.csv**
 - [x] Nap boolean encoding per day.
