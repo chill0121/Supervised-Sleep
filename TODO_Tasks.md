@@ -15,7 +15,7 @@
 - [X] Implement regression friendly dataframe.
 - [X] ROC Curve and/or F1.
 - [ ] Previous Day's Sleep Score feature (assuming previous day sleep affects current day).
-- [ ] oversampling/SMOTE .
+- [ ] oversampling/SMOTE.
 - [X] Different models.
 - [X] Reduce Features.
   - [X] Correlation matrix.
@@ -29,6 +29,11 @@
 - [X] Combine X and y DFs into one and rework train/test split.
 - [ ] Address justification for EDA before train/test split.
 - [ ] Prediction Intervals at each prediction ,using predict(SE = True), on plot.
+- [ ] Linked Table of Contents
+- [ ] Xlim the bin graph 0-100.
+- [ ] Comparison of bins.
+- [ ] Add regression line to sleep score vs types of sleep (EDA). Also makes points smaller.
+- [ ] Declare alpha to hypothesis testing.
 
 **TODO: oura_sleep_2024-01.csv**
 - [x] Nap boolean encoding per day.
