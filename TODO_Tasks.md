@@ -35,6 +35,7 @@
 - [ ] Add regression line to sleep score vs types of sleep (EDA). Also makes points smaller.
 - [ ] Declare alpha to hypothesis testing.
 - [ ] Simulate Prediction Set
+- [ ] GAM?
 
 **TODO: oura_sleep_2024-01.csv**
 - [x] Nap boolean encoding per day.
