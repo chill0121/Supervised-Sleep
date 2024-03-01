@@ -27,13 +27,13 @@
   - [X] Choose logistic regression or regression and make a case for why.
 - [ ] Ensemble solution?
 - [X] Combine X and y DFs into one and rework train/test split.
-- [ ] Address justification for EDA before train/test split.
-- [ ] Prediction Intervals at each prediction ,using predict(SE = True), on plot.
-- [ ] Linked Table of Contents
-- [ ] Xlim the bin graph 0-100.
-- [ ] Comparison of bins.
-- [ ] Add regression line to sleep score vs types of sleep (EDA). Also makes points smaller.
-- [ ] Declare alpha to hypothesis testing.
+- [X] Address justification for EDA before train/test split.
+- [ ] Prediction Intervals at each prediction on plot.
+- [X] Linked Table of Contents
+- [X] Xlim the bin graph 0-100.
+- [ ] Results comparison of bins.
+- [X] Add regression line to sleep score vs types of sleep (EDA). Also makes points smaller.
+- [X] Declare alpha to hypothesis testing.
 - [ ] Simulate Prediction Set
 - [ ] GAM?
 
