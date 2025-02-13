@@ -1,5 +1,19 @@
 # Supervised-Sleep
 
+This project is evolving from its original focus on statistical inference and machine learning exploration into a full end-to-end data pipeline. While the original analysis—covering EDA, feature engineering, statistical modeling, and machine learning—will remain as a valuable reference, the revamped version will emphasize automation, real-time data processing, and actionable insights from biometric data.
+
+The new pipeline will include:
+
+1. Scheduled API requests for data collection
+2. A data cleaning module
+3. Storage in an SQL database
+4. Machine learning modules for analysis
+5. A web-based dashboard for visualization
+
+The repository’s file structure will be updated to reflect this transition, marking the deprecation of the original implementation.
+
+---
+
 Sleep quality predictions using supervised machine learning.
 
 This project is intended as a demonstration and exploring in training machine learning predictive models on Oura Ring exported user data. The ground truth target variable is the sleep score assigned to each day from the exported data. Along with the goal of creating a well-fit model for this problem, both regression and classification models will be used in this project, exploring the efficacy of turning the discrete sleep scores into ordinal categorical variables.
