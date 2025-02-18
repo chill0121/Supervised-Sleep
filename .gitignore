@@ -2,3 +2,4 @@
 .vscode
 .vscode/settings.json
 /private_token.json
+/api_data
