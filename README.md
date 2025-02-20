@@ -10,15 +10,7 @@ The new pipeline will include:
 4. Machine learning modules for analysis
 5. A web-based dashboard for visualization
 
-The repository’s file structure will be updated to reflect this transition, marking the deprecation of the original implementation.
-
----
-
-Sleep quality predictions using supervised machine learning.
-
-This project is intended as a demonstration and exploring in training machine learning predictive models on Oura Ring exported user data. The ground truth target variable is the sleep score assigned to each day from the exported data. Along with the goal of creating a well-fit model for this problem, both regression and classification models will be used in this project, exploring the efficacy of turning the discrete sleep scores into ordinal categorical variables.
-
-Since the data collection period is currently limited, this project has been made with the goal of handling continued data uploads (all data cleaning/analysis will be generalized for continuous new data).
+The repository’s file structure will be updated to reflect this transition, marking the deprecation of the original implementation, and can be now found in the `./sleep_analysis` folder.
 
 *This project is licensed under the terms of the MIT License, but is intended for private use only.*
 
@@ -26,7 +18,18 @@ Since the data collection period is currently limited, this project has been mad
 
 ---
 
-## Environment Information / Dependencies:
+## Sleep Analysis Description:
+
+Sleep quality predictions using supervised machine learning.
+
+This project is intended as a demonstration and exploring in training machine learning predictive models on Oura Ring exported user data. The ground truth target variable is the sleep score assigned to each day from the exported data. Along with the goal of creating a well-fit model for this problem, both regression and classification models will be used in this project, exploring the efficacy of turning the discrete sleep scores into ordinal categorical variables.
+
+Since the data collection period is currently limited, this project has been made with the goal of handling continued data uploads (all data cleaning/analysis will be generalized for continuous new data).
+
+
+---
+
+### Environment Information / Dependencies:
 
 Python version: 3.11.7 (main, Dec  4 2023, 18:10:11) [Clang 15.0.0 (clang-1500.1.0.2.5)]\
 module 'numpy'  using version: 1.26.3\
@@ -37,14 +40,14 @@ module 'statsmodels.api'  using version: 0.14.1\
 module 'matplotlib'  using version: 3.8.2\
 module 'seaborn'  using version: 0.13.2
 
-## Parameters you might be interested in changing:
+### Parameters you might be interested in changing:
 
 - Train Test Split Section 7:
   - `rand_state` = 87654321
   - `test_ratio` = 0.2
   - `bin_type` = 'score_bin_custom'
 
-## Data Source Information
+### Data Source Information
 
 All data has been exported from my personal Oura Ring containing raw biometric data and Oura calculated data since I began wearing the device.
 
