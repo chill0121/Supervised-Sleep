@@ -15,6 +15,7 @@ The repository’s file structure will be updated to reflect this transition, ma
 ## Issues encountered during the project and their solutions:
 
 1. Data redundancy and today's data is always incomplete.
+
 The data fetching function looks to find the most recent API pull and uses the last end date as the new start date. This limits the redundancy to the just the last day of data that was pulled. While, this is beneficial because it limits the redundancy it also creates an issue where every pull will always include a partial day's amount of data. Only pulling data up until yesterday is not an options as one of the goals of the dashboard is to show current metrics of sleep which are included in today's data. Several solutions will be implemented to mitigate this issue and achieve this outcome.
   - API Side
     - To mitigate major redundancy in the data and API requests, the data fetching function looks to find the most recent API pull and uses the last end date as the new start date. This limits the redundancy to the just the last day of data that was pulled. This is actually beneficial because every pull will always include a partial day's amount of data.
