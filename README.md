@@ -14,13 +14,20 @@ The repository’s file structure will be updated to reflect this transition, ma
 
 ## Issues encountered during the project and their solutions:
 
-1. Data redundancy and today's data is always incomplete.
-  - The data fetching function looks to find the most recent API pull and uses the last end date as the new start date. This limits the redundancy to the just the last day of data that was pulled. While, this is beneficial because it limits the redundancy it also creates an issue where every pull will always include a partial day's amount of data. Only pulling data up until yesterday is not an options as one of the goals of the dashboard is to show current metrics of sleep which are included in today's data. Several solutions will be implemented to mitigate this issue and achieve this outcome.
-    - API:
-      - To mitigate major redundancy in the data and API requests, the data fetching function looks to find the most recent API pull and uses the last end date as the new start date. This limits the redundancy to the just the last day of data that was pulled. This is actually beneficial because every pull will always include a partial day's amount of data.
-      - Some of the partial data pulled is useful, such as: `daily_sleep`, `daily_activity`, etc -- as they contain the calculate scores of the previous day. However, data like `activity` and `workout` pertain to the current day and will be incomplete until the day is over, thus needing to be dealt with during a future data fetch. This will be accomplished using a `pending` flag, if the date of the data that is about to be stored matches today's date, a pending flag will be set to `True`. During the next future data fetch, the start date (which will be the previous end date) will overwrite any data with a True pending flag.
-    - Database:
-      - Since we still want the ability for the dashboard to display impartial data, the database will need to keep track of the impartial data issue as well and overwrite the impartial day's data when a future API pull completes it.
+1. **Incomplete and Redundant Data.**
+  - The data fetching function determines the most recent API pull and sets the last end date as the new start date. This approach minimizes redundancy but results in a one-day overlap between consecutive data fetches. While this overlap is beneficial in data consistency, it also introduces a challenge: every data pull will always include a partial day’s data. Excluding today's data is not an option, as one of the dashboard's goals is to display current sleep metrics, which are only available in today's data. To address this, multiple solutions will be implemented at several levels to manage redundancy while preserving useful real-time data.
+    - **API:**
+      - The data fetching function minimizes redundant API requests by setting the last recorded end date as the new start date. This ensures only the last day’s data overlaps between consecutive fetches, keeping redundancy to a minimum.
+      - Some of the partial data from today is still valuable. For example:
+        - Useful partial data: `daily_sleep`, `daily_activity`, etc., as they contain calculated scores for the previous day.
+        - Incomplete data: `activity`, `workout`, and other real-time metrics, which remain incomplete until the end of the current day.
+      - To handle this, a pending flag will be introduced:
+        - If the data being stored corresponds to today’s date, it will be marked as pending (True).
+        - On the next API fetch, the start date (which aligns with the previous end date) will be used to overwrite any data entries with a pending=True flag, ensuring only fully completed data remains. Further solutions are needed on the database level after this is completed.
+    - **Database:**
+    - Since the dashboard must be able to display useful but incomplete, the database will temporarily store today's partial data while keeping track of its incomplete (pending) status.
+    - When a future API pull retrieves the full day's data, the database will automatically overwrite the previously stored incomplete entries based on the pending flag.
+    - This ensures that users always see the most recent available data, with incomplete entries seamlessly replaced once fully updated information is available.
 
 *This project is licensed under the terms of the MIT License, but is intended for private use only.*
 
