@@ -11,6 +11,8 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 TOKEN_PATH = os.path.join(BASE_DIR, 'config', 'private_token.json')
 DATA_DIR = os.path.join(BASE_DIR, 'oura_api', 'data')
+TODAY = datetime.today().strftime('%Y-%m-%d')
+TODAY_DATETIME = datetime.today().strftime('%Y-%m-%dT%H:%M:%S-08:00')
 
 def load_token():
     """Load the private token for API access."""
@@ -31,17 +33,15 @@ def get_previous_date_range():
     """Find the previous API pull date range."""
     os.makedirs(DATA_DIR, exist_ok = True)
     data_files = sorted(os.listdir(DATA_DIR))
-
-    today = datetime.today().strftime('%Y-%m-%d')
     
     # Default start date if no data exists. 
     # Hardcoded based on personal Oura ring start date.
     if not data_files:
-        return '2023-02-03', today
+        return '2025-02-03', TODAY # '2023-02-03' beginning date.
     
     last_file = data_files[-1]
     last_date = last_file.split('_to_')[-1].split('.json')[0]
-    return last_date, today
+    return last_date, TODAY
 
 def fetch_data(batch, headers, params):
     """Fetch data from the API."""
@@ -57,6 +57,19 @@ def fetch_data(batch, headers, params):
         logging.error(f"Error fetching {batch}: {e}.")
         return None
 
+def set_pending_flag(data):
+    """
+    Indexes through data_batch['data'] to compare dates to TODAY.
+    Sets pending flag to True if data batch is incomplete.
+    """
+    for packet in data['data']:
+        # Handles packets that don't have 'day' key.
+        if 'day' not in packet:
+            packet['pending'] = True if packet['timestamp'][0:10] == TODAY else False
+        else:
+            packet['pending'] = True if packet['day'] == TODAY else False
+    return None
+
 def main():
     """Main function to pull API data and save it to JSON."""
     token = load_token()
@@ -69,12 +82,22 @@ def main():
         'daily_sleep', 'daily_activity', 'daily_readiness', 'daily_resilience',
         'daily_stress', 'daily_spo2', 'heartrate', 'rest_mode_period', 'sleep',
         'sleep_time', 'vO2_max', 'workout'
-    ]}
-
+        ]}
+    # Iterate through data_batch for API pull.
     for batch in data_batch:
-        data = fetch_data(batch, headers, params)
+        # Special handling for heartrate, requires datetime.
+        params_datetime = {
+            'start_datetime': start_date + 'T00:00:00-08:00', 
+            'end_datetime': TODAY_DATETIME
+            }
+        if batch == 'heartrate':
+            data = fetch_data(batch, headers, params_datetime)
+        else:
+            data = fetch_data(batch, headers, params)
+
         if data:
             data_batch[batch] = data
+            set_pending_flag(data_batch[batch])
 
     file_name = f"{start_date}_to_{end_date}.json"
     file_path = os.path.join(DATA_DIR, file_name)

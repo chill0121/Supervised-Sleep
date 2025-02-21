@@ -12,6 +12,12 @@ The new pipeline will include:
 
 The repository’s file structure will be updated to reflect this transition, marking the deprecation of the original implementation, and can be now found in the `./sleep_analysis` folder.
 
+## Issues encountered during the project and their solutions:
+
+1. Data redundancy and today's data is always incomplete.
+  - To mitigate major redundancy in the data and API requests, the data fetching function looks to find the most recent API pull and uses the last end date as the new start date. This limits the redundancy to the just the last day of data that was pulled. This is actually beneficial because every pull will always include a partial day's amount of data.
+  - Some of the partial data pulled is useful, such as: `daily_sleep`, `daily_activity`, etc -- as they contain the calculate scores of the previous day. However, data like `activity` and `workout` pertain to the current day and will be incomplete until the day is over, thus needing to be dealt with during a future data fetch. This will be accomplished using a `pending` flag, if the date of the data that is about to be stored matches today's date, a pending flag will be set to `True`. During the next future data fetch, the start date (which will be the previous end date) will overwrite any data with a True pending flag.
+
 *This project is licensed under the terms of the MIT License, but is intended for private use only.*
 
 *If you fork or use any part of this project please attribute Cody Hill as the creator of this work.*
