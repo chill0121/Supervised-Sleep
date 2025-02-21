@@ -25,9 +25,9 @@ The repository’s file structure will be updated to reflect this transition, ma
         - If the data being stored corresponds to today’s date, it will be marked as pending (True).
         - On the next API fetch, the start date (which aligns with the previous end date) will be used to overwrite any data entries with a pending=True flag, ensuring only fully completed data remains. Further solutions are needed on the database level after this is completed.
     - **Database:**
-    - Since the dashboard must be able to display useful but incomplete, the database will temporarily store today's partial data while keeping track of its incomplete (pending) status.
-    - When a future API pull retrieves the full day's data, the database will automatically overwrite the previously stored incomplete entries based on the pending flag.
-    - This ensures that users always see the most recent available data, with incomplete entries seamlessly replaced once fully updated information is available.
+      - Since the dashboard must be able to display useful but incomplete, the database will temporarily store today's partial data while keeping track of its incomplete (pending) status.
+      - When a future API pull retrieves the full day's data, the database will automatically overwrite the previously stored incomplete entries based on the pending flag.
+      - This ensures that users always see the most recent available data, with incomplete entries seamlessly replaced once fully updated information is available.
 
 *This project is licensed under the terms of the MIT License, but is intended for private use only.*
 
