@@ -1,8 +1,8 @@
-### **Database Schema**
+## **Database Schema**
 
 The structure of the Oura API data naturally guided the design of this relational database. The majority of the nested keys of the JSON necessitated creating child tables (e.g., `sleep_contributors`), reducing redundancy and improving query performance.
 
-#### **Key Design Decisions**
+### **Key Design Decisions**
 1. **Separation of Readiness Data**
     - Readiness is a derived metric that depends on both sleep and activity from the previous day.
     - Instead of using foreign keys, which would introduce unnecessary dependencies and complicate queries, readiness is stored in its own table. This allows for efficient joins with sleep and activity data using time-based queries.
@@ -48,10 +48,12 @@ In summary, these design choices will benefit our uses in the following ways:
 - **Scalability**: The design can accommodate new metrics (e.g., oxygen levels (vO2 Max), workouts) without major schema changes.
 
 ---
-Entity Relationship Diagram
+### Entity Relationship Diagram
+
 <img src="https://github.com/chill0121/Supervised-Sleep/blob/main/database/ERDiagram_Grouped.png?raw=true" alt="ERD" width="800"/>
 
 ---
+### Schema Details
 
 #### **1. `daily_sleep`**
 | Column         | Type     | Constraints         | Description                                  |
