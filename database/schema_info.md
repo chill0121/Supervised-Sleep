@@ -1,14 +1,54 @@
-### **Primary Entities**  
-- **`daily_sleep`**: Stores **daily sleep summary** data.  
-- **`daily_activity`**: Stores **daily activity summary** data.  
-- **`daily_readiness`**: Stores **daily readiness score** and contributing factors.  
-- **`heartrate`**: Stores **heart rate measurements** throughout the day.  
-- **`sleep_sessions`**: Stores **individual sleep intervals** per day (naps, interrupted sleep).  
-- **`sleep_time_recommendations`**: Stores **sleep improvement recommendations** per day.  
+### **Database Schema**
+
+The structure of the Oura API data naturally guided the design of this relational database. The majority of the nested keys of the JSON necessitated creating a **child tables** (e.g., `sleep_contributors`), reducing redundancy and improving query performance.  
+
+#### **Key Design Decisions**
+1. **Separation of Readiness Data**  
+   - *Readiness is a derived metric that depends on both sleep and activity from the previous day.  
+   - Instead of using foreign keys, which would introduce unnecessary dependencies and complicate queries, readiness is stored in its own table.  
+   - This allows for efficient joins with sleep and activity data using time-based queries.  
+
+2. **Sleep, Activity, and Heart Rate Stored Separately**  
+   - Sleep and activity data are stored separately to allow efficient queries and avoid redundant data storage.  
+   - Heart rate data, which is logged multiple times per day (every 5 minutes or more during workouts), is stored in its own table.  
+   - The `heartrate` table has optional foreign keys to `daily_sleep` and `daily_activity` when the heart rate measurement is associated with sleep or workouts.  
+
+3. **Handling Variable-Resolution Data**  
+   - Sleep sessions (which can include naps and interrupted sleep) required special normalization.  
+   - The `sleep_sessions` table was separated from `daily_sleep`, with a foreign key linking it to `daily_sleep.id`.  
+   - This approach ensures that irregular sleep patterns are properly captured without redundancy.  
+
+4. **Indexing for Performance Optimization**
+- Unique Index on `day` in `daily_sleep`, `daily_activity`, and `daily_readiness`, ensuring only one record per day.  
+- **Indexes on Foreign Keys**:
+  - `heartrate.daily_sleep_id` and `heartrate.daily_activity_id` for efficient joins on sleep and activity.  
+  - `sleep_sessions.daily_sleep_id` to optimize lookups of multiple sleep intervals per day.  
+- **Indexing Time-Series Data**:
+  - `heartrate.timestamp` is indexed to allow fast range queries for trends over time.  
+  - `sleep_sessions.bedtime_start` and `bedtime_end` are indexed for efficient sleep session queries.  
+
+5. **Cascade Deletion Constraints for Data Integrity**
+To prevent orphaned records, the following cascade delete rules were applied:  
+- Deleting a `daily_sleep` record will automatically delete:  
+  - Associated `sleep_sessions` (since they are dependent on `daily_sleep`).  
+  - `sleep_contributors`, as they are functionally dependent on sleep.  
+  - `heartrate` records where `daily_sleep_id` is set.  
+
+- Deleting a `daily_activity` record will automatically delete:  
+  - Associated `activity_contributors`.  
+  - `heartrate` records where `daily_activity_id` is set.  
+
+- Deleting a `daily_readiness` record will automatically delete:  
+  - Associated `readiness_contributors`.  
+
+In summary, these design choices will benefit our uses in the following ways:
+- **Fully Normalized (3NF)**: Reduces redundancy and ensures efficient updates.  
+- **Optimized Query Performance**: Indexing strategies improve speed for time-series lookups and day-based queries.  
+- **Data Integrity via Cascading Deletes**: Prevents orphaned records while maintaining meaningful relationships.  
+- **Scalability**: The design can accommodate new metrics (e.g., oxygen levels (vO2 Max), workouts) without major schema changes. 
 
 ---
-
-### **Database Schema**
+---
 
 #### **1. `daily_sleep`**
 | Column         | Type     | Constraints         | Description                                  |
@@ -31,64 +71,7 @@
 | timing         | INT  | NOT NULL            | Sleep timing score                            |
 | total_sleep    | INT  | NOT NULL            | Total sleep duration contribution              |
 
-#### **3. `daily_activity`**
-| Column         | Type     | Constraints         | Description                                   |
-|---------------|---------|---------------------|----------------------------------------------|
-| id            | UUID    | PRIMARY KEY         | Unique identifier for the activity record    |
-| day           | DATE    | UNIQUE, NOT NULL    | Date of the activity data                   |
-| score         | INT     | NOT NULL            | Overall activity score                      |
-| active_calories | INT  | NOT NULL            | Calories burned                             |
-| steps         | INT     | NOT NULL            | Steps taken                                 |
-| equivalent_walking_distance | INT | NOT NULL | Distance walked (in meters)                 |
-| high_activity_time | INT | NOT NULL           | Duration of high activity (seconds)         |
-| medium_activity_time | INT | NOT NULL         | Duration of medium activity (seconds)       |
-| low_activity_time | INT | NOT NULL           | Duration of low activity (seconds)          |
-| sedentary_time | INT | NOT NULL              | Duration of sedentary time (seconds)        |
-
-#### **4. `activity_contributors`**
-| Column           | Type  | Constraints         | Description                                     |
-|-----------------|------|---------------------|-------------------------------------------------|
-| activity_id     | UUID | FOREIGN KEY $\rightarrow$ `daily_activity(id)` | Links to activity record |
-| meet_daily_targets | INT | NOT NULL | Contribution to activity score |
-| move_every_hour | INT | NOT NULL | Movement frequency per hour |
-| recovery_time   | INT  | NOT NULL | Recovery time metric |
-| stay_active     | INT  | NOT NULL | General activity level |
-| training_frequency | INT | NOT NULL | Frequency of training |
-| training_volume | INT | NOT NULL | Training volume |
-
-#### **5. `daily_readiness`**
-| Column        | Type     | Constraints         | Description                                   |
-|--------------|---------|---------------------|----------------------------------------------|
-| id           | UUID    | PRIMARY KEY         | Unique identifier for the readiness record  |
-| day          | DATE    | UNIQUE, NOT NULL    | Date of readiness data                      |
-| score        | INT     | NOT NULL            | Readiness score                             |
-| temperature_deviation | FLOAT | NOT NULL | Deviation in body temperature               |
-| temperature_trend_deviation | FLOAT | NOT NULL | Trend deviation in body temperature         |
-
-#### **6. `readiness_contributors`**
-| Column             | Type  | Constraints         | Description                                    |
-|-------------------|------|---------------------|------------------------------------------------|
-| readiness_id      | UUID | FOREIGN KEY $\rightarrow$ `daily_readiness(id)` | Links to readiness record |
-| activity_balance  | INT  | NOT NULL            | Balance between activity and rest             |
-| body_temperature  | INT  | NOT NULL            | Body temperature score                        |
-| hrv_balance       | INT  | NOT NULL            | HRV balance contribution                      |
-| previous_day_activity | INT | NOT NULL | Activity impact from previous day             |
-| previous_night    | INT  | NOT NULL            | Impact of previous night's sleep              |
-| recovery_index    | INT  | NOT NULL            | Recovery index metric                         |
-| resting_heart_rate | INT | NOT NULL | Resting heart rate                             |
-| sleep_balance     | INT  | NOT NULL            | Contribution of sleep balance to readiness    |
-
-#### **7. `heartrate`**
-| Column         | Type     | Constraints | Description |
-|--------------|---------|------------|-------------------------------------------|
-| id           | SERIAL  | PRIMARY KEY | Unique identifier for heart rate record  |
-| bpm          | INT     | NOT NULL   | Heart rate in beats per minute |
-| source       | TEXT    | NOT NULL   | Measurement source (e.g., "rest", "exercise") |
-| timestamp    | TIMESTAMP WITH TIME ZONE | NOT NULL | Time of heart rate measurement |
-| daily_sleep_id | UUID  | FOREIGN KEY $\rightarrow$ `daily_sleep(id)` ON DELETE CASCADE | Links to daily sleep summary |
-| daily_activity_id | UUID | FOREIGN KEY $\rightarrow$ `daily_activity(id)` ON DELETE CASCADE | Links to daily activity summary |
-
-#### **8. `sleep_sessions`**
+#### **3. `sleep_sessions`**
 | Column         | Type     | Constraints | Description |
 |--------------|---------|------------|------------------------------------|
 | id           | UUID    | PRIMARY KEY | Unique identifier for sleep session |
@@ -102,7 +85,7 @@
 | awake_time    | INT     | NOT NULL   | Time spent awake (seconds) |
 | lowest_heart_rate | INT | NOT NULL | Lowest recorded heart rate |
 
-#### **9. `sleep_time_recommendations`**
+#### **4. `sleep_time_recommendations`**
 | Column            | Type     | Constraints         | Description                                   |
 |------------------|---------|---------------------|----------------------------------------------|
 | id              | UUID    | PRIMARY KEY         | Unique identifier for the sleep time record |
@@ -110,6 +93,64 @@
 | optimal_bedtime | TIME    | NULLABLE            | Recommended bedtime                         |
 | recommendation  | TEXT    | NOT NULL            | Sleep recommendation (e.g., "earlier bedtime") |
 
+#### **5. `daily_activity`**
+| Column         | Type     | Constraints         | Description                                   |
+|---------------|---------|---------------------|----------------------------------------------|
+| id            | UUID    | PRIMARY KEY         | Unique identifier for the activity record    |
+| day           | DATE    | UNIQUE, NOT NULL    | Date of the activity data                   |
+| score         | INT     | NOT NULL            | Overall activity score                      |
+| active_calories | INT  | NOT NULL            | Calories burned                             |
+| steps         | INT     | NOT NULL            | Steps taken                                 |
+| equivalent_walking_distance | INT | NOT NULL | Distance walked (in meters)                 |
+| high_activity_time | INT | NOT NULL           | Duration of high activity (seconds)         |
+| medium_activity_time | INT | NOT NULL         | Duration of medium activity (seconds)       |
+| low_activity_time | INT | NOT NULL           | Duration of low activity (seconds)          |
+| sedentary_time | INT | NOT NULL              | Duration of sedentary time (seconds)        |
+
+#### **6. `activity_contributors`**
+| Column           | Type  | Constraints         | Description                                     |
+|-----------------|------|---------------------|-------------------------------------------------|
+| activity_id     | UUID | FOREIGN KEY $\rightarrow$ `daily_activity(id)` | Links to activity record |
+| meet_daily_targets | INT | NOT NULL | Contribution to activity score |
+| move_every_hour | INT | NOT NULL | Movement frequency per hour |
+| recovery_time   | INT  | NOT NULL | Recovery time metric |
+| stay_active     | INT  | NOT NULL | General activity level |
+| training_frequency | INT | NOT NULL | Frequency of training |
+| training_volume | INT | NOT NULL | Training volume |
+
+#### **7. `daily_readiness`**
+| Column        | Type     | Constraints         | Description                                   |
+|--------------|---------|---------------------|----------------------------------------------|
+| id           | UUID    | PRIMARY KEY         | Unique identifier for the readiness record  |
+| day          | DATE    | UNIQUE, NOT NULL    | Date of readiness data                      |
+| score        | INT     | NOT NULL            | Readiness score                             |
+| temperature_deviation | FLOAT | NOT NULL | Deviation in body temperature               |
+| temperature_trend_deviation | FLOAT | NOT NULL | Trend deviation in body temperature         |
+
+#### **8. `readiness_contributors`**
+| Column             | Type  | Constraints         | Description                                    |
+|-------------------|------|---------------------|------------------------------------------------|
+| readiness_id      | UUID | FOREIGN KEY $\rightarrow$ `daily_readiness(id)` | Links to readiness record |
+| activity_balance  | INT  | NOT NULL            | Balance between activity and rest             |
+| body_temperature  | INT  | NOT NULL            | Body temperature score                        |
+| hrv_balance       | INT  | NOT NULL            | HRV balance contribution                      |
+| previous_day_activity | INT | NOT NULL | Activity impact from previous day             |
+| previous_night    | INT  | NOT NULL            | Impact of previous night's sleep              |
+| recovery_index    | INT  | NOT NULL            | Recovery index metric                         |
+| resting_heart_rate | INT | NOT NULL | Resting heart rate                             |
+| sleep_balance     | INT  | NOT NULL            | Contribution of sleep balance to readiness    |
+
+#### **9. `heartrate`**
+| Column         | Type     | Constraints | Description |
+|--------------|---------|------------|-------------------------------------------|
+| id           | SERIAL  | PRIMARY KEY | Unique identifier for heart rate record  |
+| bpm          | INT     | NOT NULL   | Heart rate in beats per minute |
+| source       | TEXT    | NOT NULL   | Measurement source (e.g., "rest", "exercise") |
+| timestamp    | TIMESTAMP WITH TIME ZONE | NOT NULL | Time of heart rate measurement |
+| daily_sleep_id | UUID  | FOREIGN KEY $\rightarrow$ `daily_sleep(id)` ON DELETE CASCADE | Links to daily sleep summary |
+| daily_activity_id | UUID | FOREIGN KEY $\rightarrow$ `daily_activity(id)` ON DELETE CASCADE | Links to daily activity summary |
+
+---
 ---
 
 ### **Relationships**
@@ -144,6 +185,6 @@
 | `activity_contributors` | `daily_activity_id` | `daily_activity(id)` | CASCADE |
 | `readiness_contributors` | `daily_readiness_id` | `daily_readiness(id)` | CASCADE |
 | `sleep_sessions`    | `daily_sleep_id`     | `daily_sleep(id)`      | CASCADE |
-| `heartrate`         | `daily_sleep_id` (nullable) | `daily_sleep(id)` | SET NULL |
-| `heartrate`         | `daily_activity_id` (nullable) | `daily_activity(id)` | SET NULL |
+| `heartrate`         | `daily_sleep_id` | `daily_sleep(id)` | SET NULL |
+| `heartrate`         | `daily_activity_id` | `daily_activity(id)` | SET NULL |
 | `sleep_time_recommendations` | `daily_sleep_id` | `daily_sleep(id)` | CASCADE |
