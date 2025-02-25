@@ -1,51 +1,51 @@
 ### **Database Schema**
 
-The structure of the Oura API data naturally guided the design of this relational database. The majority of the nested keys of the JSON necessitated creating a **child tables** (e.g., `sleep_contributors`), reducing redundancy and improving query performance.  
+The structure of the Oura API data naturally guided the design of this relational database. The majority of the nested keys of the JSON necessitated creating child tables (e.g., `sleep_contributors`), reducing redundancy and improving query performance.
 
 #### **Key Design Decisions**
-1. **Separation of Readiness Data**  
-   - *Readiness is a derived metric that depends on both sleep and activity from the previous day.  
-   - Instead of using foreign keys, which would introduce unnecessary dependencies and complicate queries, readiness is stored in its own table.  
-   - This allows for efficient joins with sleep and activity data using time-based queries.  
+1. **Separation of Readiness Data**
+    - Readiness is a derived metric that depends on both sleep and activity from the previous day.
+    - Instead of using foreign keys, which would introduce unnecessary dependencies and complicate queries, readiness is stored in its own table. This allows for efficient joins with sleep and activity data using time-based queries.
 
-2. **Sleep, Activity, and Heart Rate Stored Separately**  
-   - Sleep and activity data are stored separately to allow efficient queries and avoid redundant data storage.  
-   - Heart rate data, which is logged multiple times per day (every 5 minutes or more during workouts), is stored in its own table.  
-   - The `heartrate` table has optional foreign keys to `daily_sleep` and `daily_activity` when the heart rate measurement is associated with sleep or workouts.  
+2. **Sleep, Activity, and Heart Rate Stored Separately**
+    - Sleep and activity data are stored separately to allow efficient queries and avoid redundant data storage.
+    - Heart rate data, which is logged multiple times per day (every 5 minutes or more during workouts), is stored in its own table.
+    - The `heartrate` table has optional foreign keys to `daily_sleep` and `daily_activity` when the heart rate measurement is associated with sleep or workouts.
 
 3. **Handling Variable-Resolution Data**  
-   - Sleep sessions (which can include naps and interrupted sleep) required special normalization.  
-   - The `sleep_sessions` table was separated from `daily_sleep`, with a foreign key linking it to `daily_sleep.id`.  
-   - This approach ensures that irregular sleep patterns are properly captured without redundancy.  
+    - Sleep sessions (which can include naps and interrupted sleep) required special normalization.
+    - The `sleep_sessions` table was separated from `daily_sleep`, with a foreign key linking it to `daily_sleep.id`.
+    - This approach ensures that irregular sleep patterns are properly captured without redundancy.
 
 4. **Indexing for Performance Optimization**
-- Unique Index on `day` in `daily_sleep`, `daily_activity`, and `daily_readiness`, ensuring only one record per day.  
-- **Indexes on Foreign Keys**:
-  - `heartrate.daily_sleep_id` and `heartrate.daily_activity_id` for efficient joins on sleep and activity.  
-  - `sleep_sessions.daily_sleep_id` to optimize lookups of multiple sleep intervals per day.  
-- **Indexing Time-Series Data**:
-  - `heartrate.timestamp` is indexed to allow fast range queries for trends over time.  
-  - `sleep_sessions.bedtime_start` and `bedtime_end` are indexed for efficient sleep session queries.  
+    - Unique Index on `day` in `daily_sleep`, `daily_activity`, and `daily_readiness`, ensuring only one record per day.
+    - Indexes on Foreign Keys:
+        - `heartrate.daily_sleep_id` and `heartrate.daily_activity_id` for efficient joins on sleep and activity.
+        - `sleep_sessions.daily_sleep_id` to optimize lookups of multiple sleep intervals per day.
+    - Indexing Time-Series Data:
+        - `heartrate.timestamp` is indexed to allow fast range queries for trends over time.
+        - `sleep_sessions.bedtime_start` and `bedtime_end` are indexed for efficient sleep session queries.
 
 5. **Cascade Deletion Constraints for Data Integrity**
-To prevent orphaned records, the following cascade delete rules were applied:  
-- Deleting a `daily_sleep` record will automatically delete:  
-  - Associated `sleep_sessions` (since they are dependent on `daily_sleep`).  
-  - `sleep_contributors`, as they are functionally dependent on sleep.  
-  - `heartrate` records where `daily_sleep_id` is set.  
 
-- Deleting a `daily_activity` record will automatically delete:  
-  - Associated `activity_contributors`.  
-  - `heartrate` records where `daily_activity_id` is set.  
+    - To prevent orphaned records, the following cascade delete rules were applied:
+        - Deleting a `daily_sleep` record will automatically delete:
+            - Associated `sleep_sessions` (since they are dependent on `daily_sleep`).
+            - `sleep_contributors`, as they are functionally dependent on sleep.
+            - `heartrate` records where `daily_sleep_id` is set.
 
-- Deleting a `daily_readiness` record will automatically delete:  
-  - Associated `readiness_contributors`.  
+    - Deleting a `daily_activity` record will automatically delete:
+        - Associated `activity_contributors`.
+        - `heartrate` records where `daily_activity_id` is set.
+
+    - Deleting a `daily_readiness` record will automatically delete:  
+        - Associated `readiness_contributors`.
 
 In summary, these design choices will benefit our uses in the following ways:
 - **Fully Normalized (3NF)**: Reduces redundancy and ensures efficient updates.  
 - **Optimized Query Performance**: Indexing strategies improve speed for time-series lookups and day-based queries.  
 - **Data Integrity via Cascading Deletes**: Prevents orphaned records while maintaining meaningful relationships.  
-- **Scalability**: The design can accommodate new metrics (e.g., oxygen levels (vO2 Max), workouts) without major schema changes. 
+- **Scalability**: The design can accommodate new metrics (e.g., oxygen levels (vO2 Max), workouts) without major schema changes.
 
 ---
 ---
@@ -155,7 +155,7 @@ In summary, these design choices will benefit our uses in the following ways:
 
 ### **Relationships**
 
-#### **1:1 (One-to-One) Relationships**  
+#### **1:1 (One-to-One) Relationships**
 | Parent Table      | Child Table         | Foreign Key              | Relationship Description |
 |------------------|--------------------|-------------------------|-------------------------|
 | `daily_sleep`    | `sleep_contributors` | `daily_sleep_id` | Each sleep record has one set of contributor scores. |
@@ -163,14 +163,14 @@ In summary, these design choices will benefit our uses in the following ways:
 | `daily_readiness` | `readiness_contributors` | `daily_readiness_id` | Each readiness record has one set of contributor scores. |
 | `daily_sleep` | `sleep_time_recommendations` | `daily_sleep_id` | Each day may have a sleep recommendation. |
 
-#### **1:M (One-to-Many) Relationships**  
+#### **1:M (One-to-Many) Relationships**
 | Parent Table      | Child Table        | Foreign Key              | Relationship Description |
 |------------------|-------------------|-------------------------|-------------------------|
 | `daily_sleep`    | `sleep_sessions`   | `daily_sleep_id` | One daily sleep record can have multiple sleep sessions (e.g., naps, interrupted sleep). |
 | `daily_sleep`    | `heartrate`        | `daily_sleep_id` (nullable) | Some heart rate readings belong to sleep sessions. |
 | `daily_activity` | `heartrate`        | `daily_activity_id` (nullable) | Some heart rate readings belong to activity sessions. |
 
-#### **M:M (Many-to-Many) Relationships (Handled via Separate Tables)**  
+#### **M:M (Many-to-Many) Relationships (Handled via Separate Tables)**
 | First Entity      | Second Entity       | Bridge Table          | Description |
 |------------------|-------------------|----------------------|-------------|
 | `daily_sleep`    | `daily_readiness` | **(Handled via `day` field)** | Readiness depends on previous night’s sleep. |
