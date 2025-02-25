@@ -185,6 +185,6 @@ In summary, these design choices will benefit our uses in the following ways:
 | `activity_contributors` | `daily_activity_id` | `daily_activity(id)` | CASCADE |
 | `readiness_contributors` | `daily_readiness_id` | `daily_readiness(id)` | CASCADE |
 | `sleep_sessions`    | `daily_sleep_id`     | `daily_sleep(id)`      | CASCADE |
-| `heartrate`         | `daily_sleep_id` | `daily_sleep(id)` | SET NULL |
-| `heartrate`         | `daily_activity_id` | `daily_activity(id)` | SET NULL |
+| `heartrate`         | `daily_sleep_id` | `daily_sleep(id)` | CASCADE |
+| `heartrate`         | `daily_activity_id` | `daily_activity(id)` | CASCADE |
 | `sleep_time_recommendations` | `daily_sleep_id` | `daily_sleep(id)` | CASCADE |
