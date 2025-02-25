@@ -50,7 +50,7 @@ In summary, these design choices will benefit our uses in the following ways:
 ---
 ### Entity Relationship Diagram
 
-<img src="https://github.com/chill0121/Supervised-Sleep/blob/main/database/ERDiagram_Grouped.png?raw=true" alt="ERD" width="800"/>
+<img src="https://github.com/chill0121/Supervised-Sleep/blob/main/database/ERDiagram_Grouped.png?raw=true" alt="ERD" width="1200"/>
 
 ---
 ### Schema Details
