@@ -7,7 +7,7 @@ from datetime import datetime
 # Initialize logging.
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Load private token for API access
+# Load private token for API access.
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 TOKEN_PATH = os.path.join(BASE_DIR, 'config', 'private_token.json')
 DATA_DIR = os.path.join(BASE_DIR, 'oura_api', 'data')
