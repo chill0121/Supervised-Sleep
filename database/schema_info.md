@@ -48,6 +48,9 @@ In summary, these design choices will benefit our uses in the following ways:
 - **Scalability**: The design can accommodate new metrics (e.g., oxygen levels (vO2 Max), workouts) without major schema changes.
 
 ---
+Entity Relationship Diagram
+<img src="https://github.com/chill0121/Supervised-Sleep/blob/main/database/ERDiagram_Grouped.png?raw=true" alt="ERD" width="800"/>
+
 ---
 
 #### **1. `daily_sleep`**
