@@ -2,6 +2,8 @@
 
 This project is evolving from its original focus on statistical inference and machine learning exploration into a full end-to-end data pipeline. While the original analysis—covering EDA, feature engineering, statistical modeling, and machine learning—will remain as a valuable reference, the revamped version will emphasize automation, real-time data processing, and actionable insights from biometric data.
 
+TODO: Expand on this pipeline summary with more specifics now that the project is underway.
+
 The new pipeline will include:
 
 1. Scheduled API requests for data collection
@@ -28,6 +30,9 @@ The repository’s file structure will be updated to reflect this transition, ma
       - Since the dashboard must be able to display useful but incomplete, the database will temporarily store today's partial data while keeping track of its incomplete (pending) status.
       - When a future API pull retrieves the full day's data, the database will automatically overwrite the previously stored incomplete entries based on the pending flag.
       - This ensures that users always see the most recent available data, with incomplete entries seamlessly replaced once fully updated information is available.
+
+2. **Database Normalization.**
+  - 
 
 *This project is licensed under the terms of the MIT License, but is intended for private use only.*
 
