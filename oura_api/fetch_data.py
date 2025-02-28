@@ -70,7 +70,7 @@ def set_pending_flag(data):
             packet['pending'] = True if packet['day'] == TODAY else False
     return None
 
-def main_api():
+def fetch_process_save_data():
     """Main API function to pull API data and save it to JSON."""
     token = load_token()
     start_date, end_date = get_previous_date_range()
@@ -107,6 +107,3 @@ def main_api():
         json.dump(data_batch, fout, indent = 4)
 
     logging.info(f"Data successfully saved to {file_path}.")
-
-if __name__ == '__main__':
-    main_api()
