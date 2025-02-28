@@ -1,4 +1,8 @@
 import psycopg2
+import logging
+
+# Initialize logging.
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Database credentials
 DB_NAME = 'supervised_sleep'
@@ -94,8 +98,15 @@ def create_table(connection, table_dict):
     cursor = connection.cursor()
     table, columns = next(iter(table_dict.items()))
     try:
+        # First check if the table exists for logging.
+        cursor.execute(f"SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = '{table}');")
+        table_exists = cursor.fetchone()[0]
+        # Create table.
         cursor.execute(f"CREATE TABLE IF NOT EXISTS {table}({columns});")
-        # Extract foreign keys and create indexes.
+        # Only log if the table didn't exist before.
+        if not table_exists:
+            logging.info(f"Table {table} created successfully.")
+        # Index creation: extract foreign keys and create indexes.
         index_queries = []
         for col_def in columns.split(","):
             col_parts = col_def.strip().split()
@@ -103,15 +114,13 @@ def create_table(connection, table_dict):
                 col_name = col_parts[0]  # Get the column name.
                 index_name = f"idx_{table}_{col_name}"
                 index_queries.append(f"CREATE INDEX IF NOT EXISTS {index_name} ON {table}({col_name});")
-
         # Execute index creation.
         for query in index_queries:
             cursor.execute(query)
-
         connection.commit()
     except psycopg2.Error as e:
         connection.rollback()
-        print(f"An error has occurred while creating table '{table}': {e}")
+        logging.error(f"An error has occurred while creating table '{table}': {e}")
     finally:
         cursor.close()
 
@@ -119,10 +128,11 @@ def delete_table(connection, table_name):
     """CASCADE drops table matching input table_name."""
     cursor = connection.cursor()
     try:
-        cursor.execute(f'DROP TABLE {table_name} CASCADE;') # NEED TO FIGURE OUT IF CASCADE WORKS WHEN DATA IS IN.
+        cursor.execute(f'DROP TABLE {table_name} CASCADE;') # NEED TO TEST CASCADE WHEN DATA IS IN.
         connection.commit()
+        logging.info(f"Table {table_name} dropped successfully.")
     except psycopg2.Error as e:
         connection.rollback()
-        print(f"An error has occurred while dropping table '{table_name}': {e}")
+        logging.error(f"An error has occurred while dropping table '{table_name}': {e}")
     finally:
         cursor.close()
