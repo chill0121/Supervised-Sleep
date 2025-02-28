@@ -107,3 +107,6 @@ def fetch_process_save_data():
         json.dump(data_batch, fout, indent = 4)
 
     logging.info(f"Data successfully saved to {file_path}.")
+
+if __name__ == '__main__':
+    fetch_process_save_data()

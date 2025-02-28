@@ -1,5 +1,11 @@
 import psycopg2
 
+# Database credentials
+DB_NAME = 'supervised_sleep'
+DB_USER = 'chill'
+DB_HOST = 'localhost'
+DB_PORT = '5432'
+
 daily_sleep = {'daily_sleep': 'id UUID PRIMARY KEY,'
                               'day DATE UNIQUE NOT NULL,'
                               'score INT NOT NULL,'

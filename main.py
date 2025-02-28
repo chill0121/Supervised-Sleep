@@ -1,11 +1,5 @@
 import psycopg2
-from db_utilities import create_table
-
-# Database credentials
-DB_NAME = 'supervised_sleep'
-DB_USER = 'chill'
-DB_HOST = 'localhost'
-DB_PORT = '5432'
+from database.db_utilities import *#create_table, delete_table, table_list, DB_NAME, DB_USER, DB_HOST, DB_PORT
 
 def main():
     """Main function to initialize database and create tables."""
