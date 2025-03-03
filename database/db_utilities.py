@@ -136,3 +136,59 @@ def delete_table(connection, table_name):
         logging.error(f"An error has occurred while dropping table '{table_name}': {e}")
     finally:
         cursor.close()
+
+def insert_data(cursor, table_name, data):
+    """Inserts a single row at a time into a given table. For daily data."""
+    columns = ', '.join(data.keys())
+    values = ', '.join(['%s'] * len(data))
+    query = f"INSERT INTO {table_name} ({columns}) VALUES ({values}) ON CONFLICT DO NOTHING;"
+    
+    try:
+        cursor.execute(query, tuple(data.values()))
+    except psycopg2.Error as e:
+        logging.error(f"Error inserting data into '{table_name}': {e}")
+
+def update_pending_data(cursor, table_name, data, condition):
+    """Updates incomplete, pending data when a full version is available."""
+    updates = ', '.join([f"{key} = %s" for key in data.keys()])
+    query = f"UPDATE {table_name} SET {updates} WHERE {condition} AND pending = TRUE;"
+    
+    try:
+        cursor.execute(query, tuple(data.values()))
+    except psycopg2.Error as e:
+        logging.error(f"Error updating pending data in '{table_name}': {e}")
+
+def insert_to_db(connection, data_batch):
+    """Inserts API data.json files into the database. Calls insert_data() and update_pending_data()."""
+    try:
+        cursor = connection.cursor()
+        # Handle tables that have one row per day.
+        daily_tables = ['daily_sleep', 'daily_activity', 'daily_readiness', 'sleep_time_recommendations']
+        for table in daily_tables:
+            if table in data_batch and data_batch[table]:
+                data = data_batch[table]
+                update_pending_data(cursor, table, data, f"day = '{data['day']}'") # Update if pending.
+                insert_data(cursor, table, data)
+        # Handle child tables (contributor data).
+        contributor_tables = {'sleep_contributors': 'daily_sleep',
+                              'activity_contributors': 'daily_activity',
+                              'readiness_contributors': 'daily_readiness'
+                              }
+        for table, parent in contributor_tables.items():
+            if table in data_batch and parent in data_batch and data_batch[parent]:
+                data_batch[table]["id"] = data_batch[parent]["id"]  # Ensure FK consistency.
+                insert_data(cursor, table, data_batch[table])
+        # Handle tables with multiple rows per day.
+        bulk_tables = ['heartrate', 'sleep_sessions']
+        for table in bulk_tables:
+            if table in data_batch and data_batch[table]:
+                insert_data(cursor, table, data_batch[table])
+        # Commit changes.
+        connection.commit()
+        logging.info(f"Data inserted into the database successfully.")
+
+    except psycopg2.Error as e:
+        connection.rollback()
+        logging.error(f"Error inserting data to database: {e}")
+    finally:
+        cursor.close()
