@@ -1,5 +1,8 @@
 import psycopg2
 import logging
+import os
+from config.config import * #BASE_DIR, TOKEN_PATH, DATA_DIR, TODAY, TODAY_DATETIME, DB_LOG_DIR
+import json
 
 # Initialize logging.
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -145,11 +148,12 @@ def insert_data(cursor, table_name, data):
     
     try:
         cursor.execute(query, tuple(data.values()))
+        logging.INFO(f"Successfully inserted data into {table_name}.")
     except psycopg2.Error as e:
         logging.error(f"Error inserting data into '{table_name}': {e}")
 
 def update_pending_data(cursor, table_name, data, condition):
-    """Updates incomplete, pending data when a full version is available."""
+    """Updates pending data when a full version is available."""
     updates = ', '.join([f"{key} = %s" for key in data.keys()])
     query = f"UPDATE {table_name} SET {updates} WHERE {condition} AND pending = TRUE;"
     
@@ -158,34 +162,68 @@ def update_pending_data(cursor, table_name, data, condition):
     except psycopg2.Error as e:
         logging.error(f"Error updating pending data in '{table_name}': {e}")
 
+def has_been_uploaded(filename):
+    if not os.path.exists(DB_LOG_DIR): # Check if directory exists.
+        os.makedirs(DB_LOG_DIR)
+    db_log_path = os.path.join(DB_LOG_DIR, 'insert_db_log.txt')
+    if not os.path.exists(db_log_path):  # Check if file exists.
+        with open(db_log_path, 'w') as log_file:
+            logging.info(f'Log file "{db_log_path}" created.')
+
+    with open(db_log_path, 'r') as log_file:
+        uploaded_files = log_file.readlines()
+    return filename + '\n' in uploaded_files
+
+def log_uploaded_file(filename, db_log_path):
+    with open(db_log_path, 'a') as log_file:
+        log_file.write(filename + '\n')
+
+def process_json_files():
+    # List all files in the folder
+    files_to_upload = []
+    for filename in os.listdir(DATA_DIR):
+        if filename.endswith('.json'):  # Only consider .json files
+            if not has_been_uploaded(filename):
+                files_to_upload.append(filename)
+                # # If the file has not been uploaded, load and process it
+                # with open(os.path.join(DATA_DIR, filename), 'r') as file:
+                #     data = json.load(file)
+    return files_to_upload
+
 def insert_to_db(connection, data_batch):
     """Inserts API data.json files into the database. Calls insert_data() and update_pending_data()."""
     try:
         cursor = connection.cursor()
-        # Handle tables that have one row per day.
-        daily_tables = ['daily_sleep', 'daily_activity', 'daily_readiness', 'sleep_time_recommendations']
-        for table in daily_tables:
-            if table in data_batch and data_batch[table]:
-                data = data_batch[table]
-                update_pending_data(cursor, table, data, f"day = '{data['day']}'") # Update if pending.
-                insert_data(cursor, table, data)
-        # Handle child tables (contributor data).
-        contributor_tables = {'sleep_contributors': 'daily_sleep',
-                              'activity_contributors': 'daily_activity',
-                              'readiness_contributors': 'daily_readiness'
-                              }
-        for table, parent in contributor_tables.items():
-            if table in data_batch and parent in data_batch and data_batch[parent]:
-                data_batch[table]["id"] = data_batch[parent]["id"]  # Ensure FK consistency.
-                insert_data(cursor, table, data_batch[table])
-        # Handle tables with multiple rows per day.
-        bulk_tables = ['heartrate', 'sleep_sessions']
-        for table in bulk_tables:
-            if table in data_batch and data_batch[table]:
-                insert_data(cursor, table, data_batch[table])
-        # Commit changes.
-        connection.commit()
-        logging.info(f"Data inserted into the database successfully.")
+        files_to_upload = process_json_files() #DATA_DIR + '/2025-02-25_to_2025-02-28.json'#process_json_files()
+        for filename in files_to_upload:
+            with open(os.path.join(DATA_DIR,filename), 'r') as file:
+                data_batch = json.load(file)
+            logging.info(f"Inserting {filename} data into database.")
+            # Handle tables that have one row per day.
+            daily_tables = ['daily_sleep', 'daily_activity', 'daily_readiness']#, 'sleep_time_recommendations']
+            for table in daily_tables:
+                if table in data_batch and data_batch[table]:
+                    data = data_batch[table]
+                    #update_pending_data(cursor, table, data, f"day = '{data['day']}'") # Update if pending.
+                    insert_data(cursor, table, data)
+            # Handle child tables (contributor data).
+            contributor_tables = {'sleep_contributors': 'daily_sleep',
+                                'activity_contributors': 'daily_activity',
+                                'readiness_contributors': 'daily_readiness'
+                                }
+            for table, parent in contributor_tables.items():
+                if table in data_batch and parent in data_batch and data_batch[parent]:
+                    data_batch[table]["id"] = data_batch[parent]["id"]  # Ensure FK consistency.
+                    insert_data(cursor, table, data_batch[table])
+            # Handle tables with multiple rows per day.
+            bulk_tables = ['heartrate', 'sleep_sessions']
+            for table in bulk_tables:
+                if table in data_batch and data_batch[table]:
+                    insert_data(cursor, table, data_batch[table])
+            # Commit changes.
+            connection.commit()
+            log_uploaded_file(filename, os.path.join(DB_LOG_DIR, 'insert_db_log.txt'))
+            logging.info(f"Data inserted into the database successfully.")
 
     except psycopg2.Error as e:
         connection.rollback()
