@@ -1,4 +1,5 @@
 import psycopg2
+from psycopg2.extras import execute_values
 import logging
 import os
 from config.config import * #BASE_DIR, TOKEN_PATH, DATA_DIR, TODAY, TODAY_DATETIME, DB_LOG_DIR
@@ -142,13 +143,43 @@ def delete_table(connection, table_name):
 
 def insert_data(cursor, table_name, data):
     """Inserts a single row at a time into a given table. For daily data."""
+
+    # Convert nested dictionaries to JSON strings
+    # for key, value in data.items():
+    #     if isinstance(value, dict):  
+    #         data[key] = json.dumps(value)  # Convert dictionary to JSON format
+    # if 'contributors' in data['data']:
+    #     print(table_name)
+    #     contributors_data = data.pop('contributors')  # Remove from main table
+    #     insert_data(cursor, "sleep_contributors", {table_name: data['id'], **contributors_data})
+    
     columns = ', '.join(data.keys())
     values = ', '.join(['%s'] * len(data))
     query = f"INSERT INTO {table_name} ({columns}) VALUES ({values}) ON CONFLICT DO NOTHING;"
-    
+
     try:
         cursor.execute(query, tuple(data.values()))
-        logging.INFO(f"Successfully inserted data into {table_name}.")
+        logging.info(f"Successfully inserted data into {table_name}.")
+    except psycopg2.Error as e:
+        logging.error(f"Error inserting data into '{table_name}': {e}")
+
+def bulk_insert_data(cursor, table_name, data, batch_size=500):
+    """Inserts multiple records into a given table efficiently using batch inserts."""
+    
+    if not data:
+        return  # No data to insert
+    
+    columns = list(data[0].keys())  # Extract column names
+    values = ', '.join(['%s'] * len(columns))  # Generate placeholders
+    query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({values}) ON CONFLICT (id) DO NOTHING;"
+    
+    try:
+        # Process data in batches
+        for i in range(0, len(data), batch_size):
+            batch = data[i : i + batch_size]  # Get batch slice
+            values = [tuple(record.values()) for record in batch]  # Convert to tuples
+            execute_values(cursor, query, values)  # Efficient bulk insert
+
     except psycopg2.Error as e:
         logging.error(f"Error inserting data into '{table_name}': {e}")
 
@@ -194,36 +225,81 @@ def insert_to_db(connection, data_batch):
     """Inserts API data.json files into the database. Calls insert_data() and update_pending_data()."""
     try:
         cursor = connection.cursor()
-        files_to_upload = process_json_files() #DATA_DIR + '/2025-02-25_to_2025-02-28.json'#process_json_files()
+        files_to_upload = sorted(process_json_files()) #DATA_DIR + '/2025-02-25_to_2025-02-28.json'#process_json_files()
         for filename in files_to_upload:
             with open(os.path.join(DATA_DIR,filename), 'r') as file:
                 data_batch = json.load(file)
             logging.info(f"Inserting {filename} data into database.")
             # Handle tables that have one row per day.
-            daily_tables = ['daily_sleep', 'daily_activity', 'daily_readiness']#, 'sleep_time_recommendations']
-            for table in daily_tables:
-                if table in data_batch and data_batch[table]:
-                    data = data_batch[table]
-                    #update_pending_data(cursor, table, data, f"day = '{data['day']}'") # Update if pending.
-                    insert_data(cursor, table, data)
-            # Handle child tables (contributor data).
-            contributor_tables = {'sleep_contributors': 'daily_sleep',
-                                'activity_contributors': 'daily_activity',
-                                'readiness_contributors': 'daily_readiness'
-                                }
-            for table, parent in contributor_tables.items():
-                if table in data_batch and parent in data_batch and data_batch[parent]:
-                    data_batch[table]["id"] = data_batch[parent]["id"]  # Ensure FK consistency.
-                    insert_data(cursor, table, data_batch[table])
-            # Handle tables with multiple rows per day.
-            bulk_tables = ['heartrate', 'sleep_sessions']
-            for table in bulk_tables:
-                if table in data_batch and data_batch[table]:
-                    insert_data(cursor, table, data_batch[table])
+            # Define correct foreign key names for each contributors table
+            contributor_foreign_keys = {
+                "daily_sleep": "sleep_id",
+                "daily_activity": "activity_id",
+                "daily_readiness": "readiness_id"
+            }
+
+            # Insert daily tables first
+            for table in ["daily_sleep", "daily_activity", "daily_readiness"]:
+                if table in data_batch and data_batch[table]["data"]:
+                    for record in data_batch[table]["data"]:
+                        contributors = record.pop("contributors", None)  # Extract contributors
+                        insert_data(cursor, table, record)  # Insert main record
+                    
+                    # If contributors exist, insert into the related table
+                    if contributors:
+                        contributors_table = f"{table.replace('daily_', '')}_contributors"
+                        contributors[contributor_foreign_keys[table]] = record["id"]  # Set correct foreign key
+                        insert_data(cursor, contributors_table, contributors)
+                    # Handle sleep sessions (linked to `daily_sleep`)
+            if "sleep_sessions" in data_batch and data_batch["sleep_sessions"]["data"]:
+                for session in data_batch["sleep_sessions"]["data"]:
+                    session["daily_sleep_id"] = session.pop("id")  # Rename FK correctly
+                    insert_data(cursor, "sleep_sessions", session)
+
+            # Handle heart rate (can link to sleep or activity)
+            if "heartrate" in data_batch and data_batch["heartrate"]["data"]:
+                for hr_record in data_batch["heartrate"]["data"]:
+                    if "daily_sleep_id" in hr_record:
+                        hr_record["daily_sleep_id"] = hr_record.pop("id")  # Rename FK
+                    elif "daily_activity_id" in hr_record:
+                        hr_record["daily_activity_id"] = hr_record.pop("id")  # Rename FK
+                bulk_insert_data(cursor, "heartrate", data_batch["heartrate"]["data"])
             # Commit changes.
             connection.commit()
             log_uploaded_file(filename, os.path.join(DB_LOG_DIR, 'insert_db_log.txt'))
             logging.info(f"Data inserted into the database successfully.")
+    # try:
+    #     cursor = connection.cursor()
+    #     files_to_upload = process_json_files() #DATA_DIR + '/2025-02-25_to_2025-02-28.json'#process_json_files()
+    #     for filename in files_to_upload:
+    #         with open(os.path.join(DATA_DIR,filename), 'r') as file:
+    #             data_batch = json.load(file)
+    #         logging.info(f"Inserting {filename} data into database.")
+    #         # Handle tables that have one row per day.
+    #         daily_tables = ['daily_sleep', 'daily_activity', 'daily_readiness']#, 'sleep_time_recommendations']
+    #         for table in daily_tables:
+    #             if table in data_batch and data_batch[table]:
+    #                 data = data_batch[table]
+    #                 #update_pending_data(cursor, table, data, f"day = '{data['day']}'") # Update if pending.
+    #                 insert_data(cursor, table, data)
+    #         # Handle child tables (contributor data).
+    #         contributor_tables = {'sleep_contributors': 'daily_sleep',
+    #                             'activity_contributors': 'daily_activity',
+    #                             'readiness_contributors': 'daily_readiness'
+    #                             }
+    #         for table, parent in contributor_tables.items():
+    #             if table in data_batch and parent in data_batch and data_batch[parent]:
+    #                 data_batch[table]["id"] = data_batch[parent]["id"]  # Ensure FK consistency.
+    #                 insert_data(cursor, table, data_batch[table])
+    #         # Handle tables with multiple rows per day.
+    #         bulk_tables = ['heartrate', 'sleep_sessions']
+    #         for table in bulk_tables:
+    #             if table in data_batch and data_batch[table]:
+    #                 insert_data(cursor, table, data_batch[table])
+    #         # Commit changes.
+    #         connection.commit()
+    #         log_uploaded_file(filename, os.path.join(DB_LOG_DIR, 'insert_db_log.txt'))
+    #         logging.info(f"Data inserted into the database successfully.")
 
     except psycopg2.Error as e:
         connection.rollback()
