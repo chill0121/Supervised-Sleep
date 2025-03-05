@@ -194,6 +194,7 @@ def update_pending_data(cursor, table_name, data, condition):
         logging.error(f"Error updating pending data in '{table_name}': {e}")
 
 def has_been_uploaded(filename):
+    """Check/Create dir and log file for previously processed API data. Reads log."""
     if not os.path.exists(DB_LOG_DIR): # Check if directory exists.
         os.makedirs(DB_LOG_DIR)
     db_log_path = os.path.join(DB_LOG_DIR, 'insert_db_log.txt')
@@ -206,10 +207,13 @@ def has_been_uploaded(filename):
     return filename + '\n' in uploaded_files
 
 def log_uploaded_file(filename, db_log_path):
+    """Writes to log filenames that have been processed and inserted. """
     with open(db_log_path, 'a') as log_file:
         log_file.write(filename + '\n')
 
 def process_json_files():
+    """Checks which files have been previously processed and inserted into database.
+    Returns: List('file_names')"""
     # List all files in the folder
     files_to_upload = []
     for filename in os.listdir(DATA_DIR):
@@ -225,7 +229,7 @@ def insert_to_db(connection, data_batch):
     """Inserts API data.json files into the database. Calls insert_data() and update_pending_data()."""
     try:
         cursor = connection.cursor()
-        files_to_upload = sorted(process_json_files()) #DATA_DIR + '/2025-02-25_to_2025-02-28.json'#process_json_files()
+        files_to_upload = sorted(process_json_files())
         for filename in files_to_upload:
             with open(os.path.join(DATA_DIR,filename), 'r') as file:
                 data_batch = json.load(file)
@@ -233,16 +237,16 @@ def insert_to_db(connection, data_batch):
             # Handle tables that have one row per day.
             # Define correct foreign key names for each contributors table
             contributor_foreign_keys = {
-                "daily_sleep": "sleep_id",
-                "daily_activity": "activity_id",
-                "daily_readiness": "readiness_id"
+                'daily_sleep': 'sleep_id',
+                'daily_activity': 'activity_id',
+                'daily_readiness': 'readiness_id'
             }
 
             # Insert daily tables first
-            for table in ["daily_sleep", "daily_activity", "daily_readiness"]:
-                if table in data_batch and data_batch[table]["data"]:
-                    for record in data_batch[table]["data"]:
-                        contributors = record.pop("contributors", None)  # Extract contributors
+            for table in ['daily_sleep', 'daily_activity', 'daily_readiness']:
+                if table in data_batch and data_batch[table]['data']:
+                    for record in data_batch[table]['data']:
+                        contributors = record.pop('contributors', None)  # Extract contributors
                         insert_data(cursor, table, record)  # Insert main record
                     
                     # If contributors exist, insert into the related table
