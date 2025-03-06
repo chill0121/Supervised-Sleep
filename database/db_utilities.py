@@ -57,6 +57,12 @@ daily_activity = {'daily_activity': 'id UUID PRIMARY KEY,'
                                     'medium_activity_time INT NOT NULL,'
                                     'low_activity_time INT NOT NULL,'
                                     'sedentary_time INT NOT NULL,'
+                                    'average_met_minutes FLOAT NOT NULL,'
+                                    'high_activity_met_minutes INT NOT NULL,'
+                                    'medium_activity_met_minutes INT NOT NULL,'
+                                    'low_activity_met_minutes INT NOT NULL,'
+                                    'sedentary_met_minutes INT NOT NULL,'
+                                    'timestamp TIMESTAMPTZ NOT NULL,'
                                     'pending BOOLEAN NOT NULL DEFAULT FALSE'
                                     }
 activity_contributors = {'activity_contributors': 'activity_id UUID REFERENCES daily_activity(id),'
@@ -71,7 +77,7 @@ daily_readiness = {'daily_readiness': 'id UUID PRIMARY KEY,'
                                       'day TIMESTAMP UNIQUE NOT NULL,'
                                       'score INT NOT NULL,'
                                       'temperature_deviation FLOAT NOT NULL,'
-                                      'temperature_trend_deviation FLOAT NOT NULL,'
+                                      'temperature_trend_deviation FLOAT NULL,'
                                       'pending BOOLEAN NOT NULL DEFAULT FALSE'
                                       }
 readiness_contributors = {'readiness_contributors': 'readiness_id UUID REFERENCES daily_readiness(id),'
@@ -105,11 +111,11 @@ def create_table(connection, table_dict):
         # First check if the table exists for logging.
         cursor.execute(f"SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = '{table}');")
         table_exists = cursor.fetchone()[0]
-        # Create table.
-        cursor.execute(f"CREATE TABLE IF NOT EXISTS {table}({columns});")
         # Only log if the table didn't exist before.
         if not table_exists:
-            logging.info(f"Table {table} created successfully.")
+            logging.info(f"Creating {table}.")
+        # Create table.
+        cursor.execute(f"CREATE TABLE IF NOT EXISTS {table}({columns});")
         # Index creation: extract foreign keys and create indexes.
         index_queries = []
         for col_def in columns.split(","):
@@ -141,47 +147,98 @@ def delete_table(connection, table_name):
     finally:
         cursor.close()
 
-def insert_data(cursor, table_name, data):
-    """Inserts a single row at a time into a given table. For daily data."""
+def log_removed_columns(table_name, removed_columns):
+    """Logs removed columns while ensuring no redundancy."""
+    log_path = os.path.join(DB_LOG_DIR, 'removed_columns_log.txt')
 
-    # Convert nested dictionaries to JSON strings
-    # for key, value in data.items():
-    #     if isinstance(value, dict):  
-    #         data[key] = json.dumps(value)  # Convert dictionary to JSON format
-    # if 'contributors' in data['data']:
-    #     print(table_name)
-    #     contributors_data = data.pop('contributors')  # Remove from main table
-    #     insert_data(cursor, "sleep_contributors", {table_name: data['id'], **contributors_data})
+    # Initialize the existing logs as an empty dictionary
+    existing_logs = {}
+
+    # If the log file exists and has data, load the existing log entries
+    if os.path.exists(log_path) and os.path.getsize(log_path) > 0:
+        with open(log_path, 'r') as log_file:
+            for line in log_file:
+                line = line.strip()
+                if ': ' in line:
+                    table, columns = line.split(': ')
+                    existing_logs[table] = set(columns.split(', '))
+
+    # Add only new columns, ensuring no duplicates for the current table
+    if table_name not in existing_logs:
+        existing_logs[table_name] = set(removed_columns)
+    else:
+        existing_logs[table_name].update(removed_columns)
+
+    # Write the updated log without redundancy, skipping empty columns
+    with open(log_path, 'w') as log_file:
+        for table, columns in sorted(existing_logs.items()):
+            if columns:  # Only write if there are columns to log
+                log_file.write(f"{table}: {', '.join(sorted(columns))}\n")
+
+
+
+def clean_data(data, valid_columns, table_name):
+    """Removes columns not in schema and logs them."""
+    removed_columns = set()
+    cleaned_data = []
     
-    columns = ', '.join(data.keys())
-    values = ', '.join(['%s'] * len(data))
-    query = f"INSERT INTO {table_name} ({columns}) VALUES ({values}) ON CONFLICT DO NOTHING;"
+    for record in data:
+        valid_record = {key: value for key, value in record.items() if key in valid_columns}
+        removed_columns.update(set(record.keys()) - set(valid_record.keys()))
+        cleaned_data.append(valid_record)
 
-    try:
-        cursor.execute(query, tuple(data.values()))
-        logging.info(f"Successfully inserted data into {table_name}.")
-    except psycopg2.Error as e:
-        logging.error(f"Error inserting data into '{table_name}': {e}")
+    # Log removed columns for reference.
+    log_removed_columns(table_name, removed_columns)
+    return cleaned_data
+
+def insert_data(cursor, table_name, data):
+    """Inserts a single record at a time while ensuring schema compliance."""
+    if not data:
+        return
+    # Ensure data is always a list
+    if isinstance(data, dict):  
+        data = [data]  
+
+    cursor.execute(f"SELECT column_name FROM information_schema.columns WHERE table_name = '{table_name}';")
+    valid_columns = {row[0] for row in cursor.fetchall()}
+
+    #logging.info(f"Data being processed for {table_name}: {data}")
+    cleaned_data = clean_data(data, valid_columns, table_name)
+    if not cleaned_data:
+        return
+
+    columns = ', '.join(cleaned_data[0].keys())
+    values_placeholder = ', '.join(['%s'] * len(cleaned_data[0]))
+    query = f"INSERT INTO {table_name} ({columns}) VALUES ({values_placeholder}) ON CONFLICT DO NOTHING;"
+
+    for record in cleaned_data:
+        try:
+            cursor.execute(query, tuple(record.values()))
+        except psycopg2.Error as e:
+            logging.error(f"Error inserting data into '{table_name}': {e}")
 
 def bulk_insert_data(cursor, table_name, data, batch_size=500):
-    """Inserts multiple records into a given table efficiently using batch inserts."""
-    
+    """Efficiently inserts multiple records in batches."""
     if not data:
-        return  # No data to insert
-    
-    columns = list(data[0].keys())  # Extract column names
-    values = ', '.join(['%s'] * len(columns))  # Generate placeholders
-    query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({values}) ON CONFLICT (id) DO NOTHING;"
-    
-    try:
-        # Process data in batches
-        for i in range(0, len(data), batch_size):
-            batch = data[i : i + batch_size]  # Get batch slice
-            values = [tuple(record.values()) for record in batch]  # Convert to tuples
-            execute_values(cursor, query, values)  # Efficient bulk insert
+        return
 
-    except psycopg2.Error as e:
-        logging.error(f"Error inserting data into '{table_name}': {e}")
+    cursor.execute(f"SELECT column_name FROM information_schema.columns WHERE table_name = '{table_name}';")
+    valid_columns = {row[0] for row in cursor.fetchall()}
+    #logging.info(f"Data being processed for {table_name}: {data}")
+    cleaned_data = clean_data(data, valid_columns, table_name)
+    if not cleaned_data:
+        return
+
+    columns = list(cleaned_data[0].keys())
+    query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES %s ON CONFLICT DO NOTHING;"
+
+    for i in range(0, len(cleaned_data), batch_size):
+        batch = cleaned_data[i : i + batch_size]
+        values = [[record[col] for col in columns] for record in batch]  # Ensure correct format
+        try:
+            execute_values(cursor, query, values)  # Properly pass values
+        except psycopg2.Error as e:
+            logging.error(f"Error inserting batch into '{table_name}': {e}")
 
 def update_pending_data(cursor, table_name, data, condition):
     """Updates pending data when a full version is available."""
@@ -229,18 +286,17 @@ def insert_to_db(connection, data_batch):
     """Inserts API data.json files into the database. Calls insert_data() and update_pending_data()."""
     try:
         cursor = connection.cursor()
-        files_to_upload = sorted(process_json_files())
+        files_to_upload = sorted(process_json_files()) #Sorted to ensure chronology.
         for filename in files_to_upload:
             with open(os.path.join(DATA_DIR,filename), 'r') as file:
                 data_batch = json.load(file)
             logging.info(f"Inserting {filename} data into database.")
             # Handle tables that have one row per day.
             # Define correct foreign key names for each contributors table
-            contributor_foreign_keys = {
-                'daily_sleep': 'sleep_id',
-                'daily_activity': 'activity_id',
-                'daily_readiness': 'readiness_id'
-            }
+            contributor_foreign_keys = {'daily_sleep': 'sleep_id',
+                                        'daily_activity': 'activity_id',
+                                        'daily_readiness': 'readiness_id'
+                                        }
 
             # Insert daily tables first
             for table in ['daily_sleep', 'daily_activity', 'daily_readiness']:
@@ -252,58 +308,22 @@ def insert_to_db(connection, data_batch):
                     # If contributors exist, insert into the related table
                     if contributors:
                         contributors_table = f"{table.replace('daily_', '')}_contributors"
-                        contributors[contributor_foreign_keys[table]] = record["id"]  # Set correct foreign key
+                        contributors[contributor_foreign_keys[table]] = record['id']  # Set correct foreign key
                         insert_data(cursor, contributors_table, contributors)
                     # Handle sleep sessions (linked to `daily_sleep`)
-            if "sleep_sessions" in data_batch and data_batch["sleep_sessions"]["data"]:
-                for session in data_batch["sleep_sessions"]["data"]:
-                    session["daily_sleep_id"] = session.pop("id")  # Rename FK correctly
-                    insert_data(cursor, "sleep_sessions", session)
+            if 'sleep_sessions' in data_batch and data_batch['sleep_sessions']['data']:
+                for session in data_batch['sleep_sessions']['data']:
+                    session['daily_sleep_id'] = session.pop('id')  # Rename FK correctly
+                    insert_data(cursor, 'sleep_sessions', session)
 
             # Handle heart rate (can link to sleep or activity)
-            if "heartrate" in data_batch and data_batch["heartrate"]["data"]:
-                for hr_record in data_batch["heartrate"]["data"]:
-                    if "daily_sleep_id" in hr_record:
-                        hr_record["daily_sleep_id"] = hr_record.pop("id")  # Rename FK
-                    elif "daily_activity_id" in hr_record:
-                        hr_record["daily_activity_id"] = hr_record.pop("id")  # Rename FK
-                bulk_insert_data(cursor, "heartrate", data_batch["heartrate"]["data"])
+            if 'heartrate' in data_batch and data_batch['heartrate']['data']:
+
+                bulk_insert_data(cursor, 'heartrate', data_batch['heartrate']['data'])
             # Commit changes.
             connection.commit()
             log_uploaded_file(filename, os.path.join(DB_LOG_DIR, 'insert_db_log.txt'))
             logging.info(f"Data inserted into the database successfully.")
-    # try:
-    #     cursor = connection.cursor()
-    #     files_to_upload = process_json_files() #DATA_DIR + '/2025-02-25_to_2025-02-28.json'#process_json_files()
-    #     for filename in files_to_upload:
-    #         with open(os.path.join(DATA_DIR,filename), 'r') as file:
-    #             data_batch = json.load(file)
-    #         logging.info(f"Inserting {filename} data into database.")
-    #         # Handle tables that have one row per day.
-    #         daily_tables = ['daily_sleep', 'daily_activity', 'daily_readiness']#, 'sleep_time_recommendations']
-    #         for table in daily_tables:
-    #             if table in data_batch and data_batch[table]:
-    #                 data = data_batch[table]
-    #                 #update_pending_data(cursor, table, data, f"day = '{data['day']}'") # Update if pending.
-    #                 insert_data(cursor, table, data)
-    #         # Handle child tables (contributor data).
-    #         contributor_tables = {'sleep_contributors': 'daily_sleep',
-    #                             'activity_contributors': 'daily_activity',
-    #                             'readiness_contributors': 'daily_readiness'
-    #                             }
-    #         for table, parent in contributor_tables.items():
-    #             if table in data_batch and parent in data_batch and data_batch[parent]:
-    #                 data_batch[table]["id"] = data_batch[parent]["id"]  # Ensure FK consistency.
-    #                 insert_data(cursor, table, data_batch[table])
-    #         # Handle tables with multiple rows per day.
-    #         bulk_tables = ['heartrate', 'sleep_sessions']
-    #         for table in bulk_tables:
-    #             if table in data_batch and data_batch[table]:
-    #                 insert_data(cursor, table, data_batch[table])
-    #         # Commit changes.
-    #         connection.commit()
-    #         log_uploaded_file(filename, os.path.join(DB_LOG_DIR, 'insert_db_log.txt'))
-    #         logging.info(f"Data inserted into the database successfully.")
 
     except psycopg2.Error as e:
         connection.rollback()
