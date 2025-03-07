@@ -14,7 +14,7 @@ def main():
         for table in table_list:
             create_table(connection, table)
 
-        insert_to_db(connection, 1)
+        insert_json_files_to_db(connection, 1)
         connection.close()
 
     except psycopg2.Error as e:

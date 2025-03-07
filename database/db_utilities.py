@@ -112,6 +112,7 @@ heartrate = {'heartrate': 'id SERIAL PRIMARY KEY,'
                           'daily_activity_id UUID REFERENCES daily_activity(id) ON DELETE SET NULL,'
                           'pending BOOLEAN NOT NULL DEFAULT FALSE'
                           }
+# Create list of tables, to be used in main().
 table_list = [daily_sleep, sleep_contributors, sleep_sessions,
               sleep_time_recommendations, daily_activity, activity_contributors,
               daily_readiness, readiness_contributors, heartrate]
@@ -189,10 +190,10 @@ def log_removed_columns(table_name, removed_columns):
             if columns:  # Only write if there are columns to log
                 log_file.write(f"{table}: {', '.join(sorted(columns))}\n")
 
-
+removed_columns_global = {}  # Dictionary to store removed columns for all tables
 
 def clean_data(data, valid_columns, table_name):
-    """Removes columns not in schema and logs them."""
+    """Removes columns not in schema and stores them in a global variable to reduce redundancy."""
     removed_columns = set()
     cleaned_data = []
     
@@ -201,9 +202,16 @@ def clean_data(data, valid_columns, table_name):
         removed_columns.update(set(record.keys()) - set(valid_record.keys()))
         cleaned_data.append(valid_record)
 
-    # Log removed columns for reference.
-    log_removed_columns(table_name, removed_columns)
+    # Log removed columns for reference, will store them in another function.
+    if removed_columns:
+        removed_columns_global[table_name] = removed_columns
+
     return cleaned_data
+
+def log_all_removed_columns():
+    """Logs all removed columns at once instead of repeatedly in `clean_data()`."""
+    for table_name, removed_columns in removed_columns_global.items():
+        log_removed_columns(table_name, removed_columns)
 
 def insert_data(cursor, table_name, data):
     """Inserts a single record at a time while ensuring schema compliance."""
@@ -264,7 +272,7 @@ def update_pending_data(cursor, table_name, data, condition):
     except psycopg2.Error as e:
         logging.error(f"Error updating pending data in '{table_name}': {e}")
 
-def has_been_uploaded(filename):
+def is_file_already_uploaded(filename):
     """Check/Create dir and log file for previously processed API data. Reads log."""
     if not os.path.exists(DB_LOG_DIR): # Check if directory exists.
         os.makedirs(DB_LOG_DIR)
@@ -277,30 +285,30 @@ def has_been_uploaded(filename):
         uploaded_files = log_file.readlines()
     return filename + '\n' in uploaded_files
 
-def log_uploaded_file(filename, db_log_path):
+def mark_file_as_uploaded(filename, db_log_path):
     """Writes to log filenames that have been processed and inserted. """
     with open(db_log_path, 'a') as log_file:
         log_file.write(filename + '\n')
 
-def process_json_files():
+def get_unprocessed_json_files():
     """Checks which files have been previously processed and inserted into database.
     Returns: List('file_names')"""
     # List all files in the folder
     files_to_upload = []
     for filename in os.listdir(DATA_DIR):
         if filename.endswith('.json'):  # Only consider .json files
-            if not has_been_uploaded(filename):
+            if not is_file_already_uploaded(filename):
                 files_to_upload.append(filename)
                 # # If the file has not been uploaded, load and process it
                 # with open(os.path.join(DATA_DIR, filename), 'r') as file:
                 #     data = json.load(file)
     return files_to_upload
 
-def insert_to_db(connection, data_batch):
+def insert_json_files_to_db(connection, data_batch):
     """Inserts API data.json files into the database. Calls insert_data() and update_pending_data()."""
     try:
         cursor = connection.cursor()
-        files_to_upload = sorted(process_json_files()) #Sorted to ensure chronology.
+        files_to_upload = sorted(get_unprocessed_json_files()) #Sorted to ensure chronology.
         for filename in files_to_upload:
             with open(os.path.join(DATA_DIR,filename), 'r') as file:
                 data_batch = json.load(file)
@@ -339,7 +347,7 @@ def insert_to_db(connection, data_batch):
                     sleep_session['daily_sleep_id'] = daily_sleep_map.get(session_day, None)
 
                     if sleep_session['daily_sleep_id'] is None:
-                        print(f"Warning: No matching daily_sleep record for sleep session on {session_day}. Skipping...")
+                        logging.warning(f"Warning: No matching daily_sleep record for sleep session on {session_day}. Skipping...")
                         continue  # Skip if no matching daily_sleep_id
 
                     sleep_sessions_records.append(sleep_session)
@@ -352,8 +360,10 @@ def insert_to_db(connection, data_batch):
                 bulk_insert_data(cursor, 'heartrate', data_batch['heartrate']['data'])
             # Commit changes.
             connection.commit()
-            log_uploaded_file(filename, os.path.join(DB_LOG_DIR, 'insert_db_log.txt'))
+            mark_file_as_uploaded(filename, os.path.join(DB_LOG_DIR, 'insert_db_log.txt'))
             logging.info(f"Data inserted into the database successfully.")
+        # Log all removed columns now that processing is done.
+        log_all_removed_columns()
 
     except psycopg2.Error as e:
         connection.rollback()
