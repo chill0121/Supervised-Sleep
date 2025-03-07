@@ -33,12 +33,26 @@ sleep_sessions = {'sleep_sessions': 'id UUID PRIMARY KEY,'
                                     'daily_sleep_id UUID REFERENCES daily_sleep(id) ON DELETE CASCADE,'
                                     'bedtime_start TIMESTAMPTZ NOT NULL,'
                                     'bedtime_end TIMESTAMPTZ NOT NULL,'
-                                    'total_sleep INT NOT NULL,'
-                                    'deep_sleep INT NOT NULL,'
-                                    'rem_sleep INT NOT NULL,'
-                                    'light_sleep INT NOT NULL,'
+                                    'total_sleep_duration INT NOT NULL,'
+                                    'deep_sleep_duration INT NOT NULL,'
+                                    'rem_sleep_duration INT NOT NULL,'
+                                    'light_sleep_duration INT NOT NULL,'
                                     'awake_time INT NOT NULL,'
                                     'lowest_heart_rate INT NOT NULL,'
+                                    'latency INT NOT NULL,'
+                                    'efficiency INT NOT NULL,'
+                                    'average_breath FLOAT NOT NULL,'
+                                    'average_heart_rate INT NULL,'
+                                    'average_hrv INT NULL,'
+                                    #'movement_30_sec TEXT NOT NULL,'
+                                    'restless_periods INT NOT NULL,'
+                                    'period INT NOT NULL,'
+                                    'sleep_phase_5_min TEXT NOT NULL,'
+                                    'time_in_bed INT NOT NULL,'
+                                    'sleep_score_delta INT NULL,'
+                                    'low_battery_alert BOOLEAN NOT NULL DEFAULT FALSE,'
+                                    #'sleep_algorithm_version TEXT NOT NULL,'
+                                    'type TEXT NOT NULL,'
                                     'pending BOOLEAN NOT NULL DEFAULT FALSE'
                                     }
 sleep_time_recommendations = {'sleep_time_recommendations': 'id UUID PRIMARY KEY,'
@@ -297,12 +311,15 @@ def insert_to_db(connection, data_batch):
                                         'daily_activity': 'activity_id',
                                         'daily_readiness': 'readiness_id'
                                         }
-
+            daily_sleep_map = {}  # {day: daily_sleep.id}
             # Insert daily tables first
             for table in ['daily_sleep', 'daily_activity', 'daily_readiness']:
                 if table in data_batch and data_batch[table]['data']:
                     for record in data_batch[table]['data']:
                         contributors = record.pop('contributors', None)  # Extract contributors
+                        # Map `day` to `id` for later reference in `sleep_sessions`
+                        if table == 'daily_sleep':
+                            daily_sleep_map[record['day']] = record['id']
                         insert_data(cursor, table, record)  # Insert main record
                     
                     # If contributors exist, insert into the related table
@@ -310,11 +327,24 @@ def insert_to_db(connection, data_batch):
                         contributors_table = f"{table.replace('daily_', '')}_contributors"
                         contributors[contributor_foreign_keys[table]] = record['id']  # Set correct foreign key
                         insert_data(cursor, contributors_table, contributors)
-                    # Handle sleep sessions (linked to `daily_sleep`)
-            if 'sleep_sessions' in data_batch and data_batch['sleep_sessions']['data']:
-                for session in data_batch['sleep_sessions']['data']:
-                    session['daily_sleep_id'] = session.pop('id')  # Rename FK correctly
-                    insert_data(cursor, 'sleep_sessions', session)
+            # Insert sleep sessions and reference correct 'daily_sleep' id by using 'day'.
+            if 'sleep' in data_batch and data_batch['sleep']['data']:
+                sleep_sessions_records = []
+
+                for session in data_batch['sleep']['data']:
+                    sleep_session = session.copy()  # Preserve original JSON structure
+                    
+                    # Find correct `daily_sleep_id` using `day`
+                    session_day = sleep_session['day']
+                    sleep_session['daily_sleep_id'] = daily_sleep_map.get(session_day, None)
+
+                    if sleep_session['daily_sleep_id'] is None:
+                        print(f"Warning: No matching daily_sleep record for sleep session on {session_day}. Skipping...")
+                        continue  # Skip if no matching daily_sleep_id
+
+                    sleep_sessions_records.append(sleep_session)
+
+                bulk_insert_data(cursor, "sleep_sessions", sleep_sessions_records)
 
             # Handle heart rate (can link to sleep or activity)
             if 'heartrate' in data_batch and data_batch['heartrate']['data']:
