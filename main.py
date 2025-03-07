@@ -7,12 +7,12 @@ def main():
     try:
         connection = psycopg2.connect(database=DB_NAME, user=DB_USER, host=DB_HOST, port=DB_PORT)
         # Delete All for troubleshooting.
-        for table in table_list:
-            delete_table(connection, [*table][0])
+        for table in table_dict.keys():
+            delete_table(connection, table)
         
         # Create All
-        for table in table_list:
-            create_table(connection, table)
+        for table, columns in table_dict.items():
+            create_table(connection, {table: columns})
 
         insert_json_files_to_db(connection, 1)
         connection.close()

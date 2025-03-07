@@ -14,108 +14,96 @@ DB_USER = 'chill'
 DB_HOST = 'localhost'
 DB_PORT = '5432'
 
-daily_sleep = {'daily_sleep': 'id UUID PRIMARY KEY,'
+table_dict = {'daily_sleep': 'id UUID PRIMARY KEY,'
                               'day DATE UNIQUE NOT NULL,'
                               'score INT NOT NULL,'
                               'timestamp TIMESTAMPTZ NOT NULL,'
-                              'pending BOOLEAN NOT NULL DEFAULT FALSE'
-                              }
-sleep_contributors = {'sleep_contributors': 'sleep_id UUID REFERENCES daily_sleep(id) ON DELETE CASCADE,'
-                                            'deep_sleep INT NOT NULL,'
-                                            'efficiency INT NOT NULL,'
-                                            'latency INT NOT NULL,'
-                                            'rem_sleep INT NOT NULL,'
-                                            'restfulness INT NOT NULL,'
-                                            'timing INT NOT NULL,'
-                                            'total_sleep INT NOT NULL'
-                                            }
-sleep_sessions = {'sleep_sessions': 'id UUID PRIMARY KEY,'
-                                    'daily_sleep_id UUID REFERENCES daily_sleep(id) ON DELETE CASCADE,'
-                                    'bedtime_start TIMESTAMPTZ NOT NULL,'
-                                    'bedtime_end TIMESTAMPTZ NOT NULL,'
-                                    'total_sleep_duration INT NOT NULL,'
-                                    'deep_sleep_duration INT NOT NULL,'
-                                    'rem_sleep_duration INT NOT NULL,'
-                                    'light_sleep_duration INT NOT NULL,'
-                                    'awake_time INT NOT NULL,'
-                                    'lowest_heart_rate INT NOT NULL,'
-                                    'latency INT NOT NULL,'
+                              'pending BOOLEAN NOT NULL DEFAULT FALSE',
+              'sleep_contributors': 'sleep_id UUID PRIMARY KEY REFERENCES daily_sleep(id) ON DELETE CASCADE,'
+                                    'deep_sleep INT NOT NULL,'
                                     'efficiency INT NOT NULL,'
-                                    'average_breath FLOAT NOT NULL,'
-                                    'average_heart_rate INT NULL,'
-                                    'average_hrv INT NULL,'
-                                    #'movement_30_sec TEXT NOT NULL,'
-                                    'restless_periods INT NOT NULL,'
-                                    'period INT NOT NULL,'
-                                    'sleep_phase_5_min TEXT NOT NULL,'
-                                    'time_in_bed INT NOT NULL,'
-                                    'sleep_score_delta INT NULL,'
-                                    'low_battery_alert BOOLEAN NOT NULL DEFAULT FALSE,'
-                                    #'sleep_algorithm_version TEXT NOT NULL,'
-                                    'type TEXT NOT NULL,'
-                                    'pending BOOLEAN NOT NULL DEFAULT FALSE'
-                                    }
-sleep_time_recommendations = {'sleep_time_recommendations': 'id UUID PRIMARY KEY,'
-                                                            'day DATE NOT NULL,'
-                                                            'optimal_bedtime TIMESTAMP NULL,'
-                                                            'recommendation TEXT NOT NULL,'
-                                                            'pending BOOLEAN NOT NULL DEFAULT FALSE'
-                                                            }
-daily_activity = {'daily_activity': 'id UUID PRIMARY KEY,'
-                                    'day DATE UNIQUE NOT NULL,'
-                                    'score INT NOT NULL,'
-                                    'active_calories INT NOT NULL,'
-                                    'steps INT NOT NULL,'
-                                    'equivalent_walking_distance INT NOT NULL,'
-                                    'high_activity_time INT NOT NULL,'
-                                    'medium_activity_time INT NOT NULL,'
-                                    'low_activity_time INT NOT NULL,'
-                                    'sedentary_time INT NOT NULL,'
-                                    'average_met_minutes FLOAT NOT NULL,'
-                                    'high_activity_met_minutes INT NOT NULL,'
-                                    'medium_activity_met_minutes INT NOT NULL,'
-                                    'low_activity_met_minutes INT NOT NULL,'
-                                    'sedentary_met_minutes INT NOT NULL,'
-                                    'timestamp TIMESTAMPTZ NOT NULL,'
-                                    'pending BOOLEAN NOT NULL DEFAULT FALSE'
-                                    }
-activity_contributors = {'activity_contributors': 'activity_id UUID REFERENCES daily_activity(id),'
-                                                  'meet_daily_targets INT NOT NULL,'
-                                                  'move_every_hour INT NOT NULL,'
-                                                  'recovery_time INT NOT NULL,'
-                                                  'stay_active INT NOT NULL,'
-                                                  'training_frequency INT NOT NULL,'
-                                                  'training_volume INT NOT NULL'
-                                                  }
-daily_readiness = {'daily_readiness': 'id UUID PRIMARY KEY,'
-                                      'day TIMESTAMP UNIQUE NOT NULL,'
-                                      'score INT NOT NULL,'
-                                      'temperature_deviation FLOAT NOT NULL,'
-                                      'temperature_trend_deviation FLOAT NULL,'
-                                      'pending BOOLEAN NOT NULL DEFAULT FALSE'
-                                      }
-readiness_contributors = {'readiness_contributors': 'readiness_id UUID REFERENCES daily_readiness(id),'
-                                                    'activity_balance INT NOT NULL,'
-                                                    'body_temperature INT NOT NULL,'
-                                                    'hrv_balance INT NOT NULL,'
-                                                    'previous_day_activity INT NOT NULL,'
-                                                    'previous_night INT NOT NULL,'
-                                                    'recovery_index INT NOT NULL,'
-                                                    'resting_heart_rate INT NOT NULL,'
-                                                    'sleep_balance INT NOT NULL'
-                                                    }
-heartrate = {'heartrate': 'id SERIAL PRIMARY KEY,'
-                          'bpm INT NOT NULL,'
-                          'source TEXT NOT NULL,'
-                          'timestamp TIMESTAMPTZ NOT NULL,'
-                          'daily_sleep_id UUID REFERENCES daily_sleep(id) ON DELETE SET NULL,'
-                          'daily_activity_id UUID REFERENCES daily_activity(id) ON DELETE SET NULL,'
-                          'pending BOOLEAN NOT NULL DEFAULT FALSE'
-                          }
-# Create list of tables, to be used in main().
-table_list = [daily_sleep, sleep_contributors, sleep_sessions,
-              sleep_time_recommendations, daily_activity, activity_contributors,
-              daily_readiness, readiness_contributors, heartrate]
+                                    'latency INT NOT NULL,'
+                                    'rem_sleep INT NOT NULL,'
+                                    'restfulness INT NOT NULL,'
+                                    'timing INT NOT NULL,'
+                                    'total_sleep INT NOT NULL',
+              'sleep_sessions': 'id UUID PRIMARY KEY,'
+                                'daily_sleep_id UUID REFERENCES daily_sleep(id) ON DELETE CASCADE,'
+                                'bedtime_start TIMESTAMPTZ NOT NULL,'
+                                'bedtime_end TIMESTAMPTZ NOT NULL,'
+                                'total_sleep_duration INT NOT NULL,'
+                                'deep_sleep_duration INT NOT NULL,'
+                                'rem_sleep_duration INT NOT NULL,'
+                                'light_sleep_duration INT NOT NULL,'
+                                'awake_time INT NOT NULL,'
+                                'lowest_heart_rate INT NOT NULL,'
+                                'latency INT NOT NULL,'
+                                'efficiency INT NOT NULL,'
+                                'average_breath FLOAT NOT NULL,'
+                                'average_heart_rate INT NULL,'
+                                'average_hrv INT NULL,'
+                                #'movement_30_sec TEXT NOT NULL,'
+                                'restless_periods INT NOT NULL,'
+                                'period INT NOT NULL,'
+                                'sleep_phase_5_min TEXT NOT NULL,'
+                                'time_in_bed INT NOT NULL,'
+                                'sleep_score_delta INT NULL,'
+                                'low_battery_alert BOOLEAN NOT NULL DEFAULT FALSE,'
+                                #'sleep_algorithm_version TEXT NOT NULL,'
+                                'type TEXT NOT NULL,'
+                                'pending BOOLEAN NOT NULL DEFAULT FALSE',
+              'sleep_time_recommendations': 'id UUID PRIMARY KEY,'
+                                            'day DATE NOT NULL,'
+                                            'optimal_bedtime TIMESTAMP NULL,'
+                                            'recommendation TEXT NOT NULL,'
+                                            'pending BOOLEAN NOT NULL DEFAULT FALSE',
+              'daily_activity': 'id UUID PRIMARY KEY,'
+                                'day DATE UNIQUE NOT NULL,'
+                                'score INT NOT NULL,'
+                                'active_calories INT NOT NULL,'
+                                'steps INT NOT NULL,'
+                                'equivalent_walking_distance INT NOT NULL,'
+                                'high_activity_time INT NOT NULL,'
+                                'medium_activity_time INT NOT NULL,'
+                                'low_activity_time INT NOT NULL,'
+                                'sedentary_time INT NOT NULL,'
+                                'average_met_minutes FLOAT NOT NULL,'
+                                'high_activity_met_minutes INT NOT NULL,'
+                                'medium_activity_met_minutes INT NOT NULL,'
+                                'low_activity_met_minutes INT NOT NULL,'
+                                'sedentary_met_minutes INT NOT NULL,'
+                                'timestamp TIMESTAMPTZ NOT NULL,'
+                                'pending BOOLEAN NOT NULL DEFAULT FALSE',
+              'activity_contributors': 'activity_id UUID PRIMARY KEY REFERENCES daily_activity(id),'
+                                       'meet_daily_targets INT NOT NULL,'
+                                       'move_every_hour INT NOT NULL,'
+                                       'recovery_time INT NOT NULL,'
+                                       'stay_active INT NOT NULL,'
+                                       'training_frequency INT NOT NULL,'
+                                       'training_volume INT NOT NULL',
+              'daily_readiness': 'id UUID PRIMARY KEY,'
+                                 'day TIMESTAMP UNIQUE NOT NULL,'
+                                 'score INT NOT NULL,'
+                                 'temperature_deviation FLOAT NOT NULL,'
+                                 'temperature_trend_deviation FLOAT NULL,'
+                                 'pending BOOLEAN NOT NULL DEFAULT FALSE',
+              'readiness_contributors': 'readiness_id UUID PRIMARY KEY REFERENCES daily_readiness(id),'
+                                        'activity_balance INT NOT NULL,'
+                                        'body_temperature INT NOT NULL,'
+                                        'hrv_balance INT NOT NULL,'
+                                        'previous_day_activity INT NULL,'
+                                        'previous_night INT NOT NULL,'
+                                        'recovery_index INT NOT NULL,'
+                                        'resting_heart_rate INT NOT NULL,'
+                                        'sleep_balance INT NOT NULL',
+              'heartrate': 'id SERIAL PRIMARY KEY,'
+                           'bpm INT NOT NULL,'
+                           'source TEXT NOT NULL,'
+                           'timestamp TIMESTAMPTZ NOT NULL,'
+                           'daily_sleep_id UUID REFERENCES daily_sleep(id) ON DELETE SET NULL,'
+                           'daily_activity_id UUID REFERENCES daily_activity(id) ON DELETE SET NULL,'
+                           'pending BOOLEAN NOT NULL DEFAULT FALSE'
+              }
 
 def create_table(connection, table_dict):
     """Creates table in database with supplied dictionary {name: columns}, and 
@@ -213,32 +201,6 @@ def log_all_removed_columns():
     for table_name, removed_columns in removed_columns_global.items():
         log_removed_columns(table_name, removed_columns)
 
-def insert_data(cursor, table_name, data):
-    """Inserts a single record at a time while ensuring schema compliance."""
-    if not data:
-        return
-    # Ensure data is always a list
-    if isinstance(data, dict):  
-        data = [data]  
-
-    cursor.execute(f"SELECT column_name FROM information_schema.columns WHERE table_name = '{table_name}';")
-    valid_columns = {row[0] for row in cursor.fetchall()}
-
-    #logging.info(f"Data being processed for {table_name}: {data}")
-    cleaned_data = clean_data(data, valid_columns, table_name)
-    if not cleaned_data:
-        return
-
-    columns = ', '.join(cleaned_data[0].keys())
-    values_placeholder = ', '.join(['%s'] * len(cleaned_data[0]))
-    query = f"INSERT INTO {table_name} ({columns}) VALUES ({values_placeholder}) ON CONFLICT DO NOTHING;"
-
-    for record in cleaned_data:
-        try:
-            cursor.execute(query, tuple(record.values()))
-        except psycopg2.Error as e:
-            logging.error(f"Error inserting data into '{table_name}': {e}")
-
 def bulk_insert_data(cursor, table_name, data, batch_size=500):
     """Efficiently inserts multiple records in batches."""
     if not data:
@@ -252,7 +214,19 @@ def bulk_insert_data(cursor, table_name, data, batch_size=500):
         return
 
     columns = list(cleaned_data[0].keys())
-    query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES %s ON CONFLICT DO NOTHING;"
+    # Get the primary key of the table dynamically
+    cursor.execute(f"""
+        SELECT column_name 
+        FROM information_schema.key_column_usage 
+        WHERE table_name = '{table_name}'
+          AND constraint_name = '{table_name}_pkey';
+    """)
+    primary_key = cursor.fetchone()
+    # Only use ON CONFLICT if a primary key exists
+    conflict_clause = f"ON CONFLICT ({primary_key[0]}) DO NOTHING" if primary_key else ""
+
+    query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES %s {conflict_clause};"
+    # query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES %s ON CONFLICT ({columns[0]}) DO NOTHING;"
 
     for i in range(0, len(cleaned_data), batch_size):
         batch = cleaned_data[i : i + batch_size]
@@ -328,13 +302,13 @@ def insert_json_files_to_db(connection, data_batch):
                         # Map `day` to `id` for later reference in `sleep_sessions`
                         if table == 'daily_sleep':
                             daily_sleep_map[record['day']] = record['id']
-                        insert_data(cursor, table, record)  # Insert main record
+                        bulk_insert_data(cursor, table, [record])  # Insert main record
                     
-                    # If contributors exist, insert into the related table
-                    if contributors:
-                        contributors_table = f"{table.replace('daily_', '')}_contributors"
-                        contributors[contributor_foreign_keys[table]] = record['id']  # Set correct foreign key
-                        insert_data(cursor, contributors_table, contributors)
+                        # If contributors exist, insert into the related table
+                        if contributors:
+                            contributors_table = f"{table.replace('daily_', '')}_contributors"
+                            contributors[contributor_foreign_keys[table]] = record['id']  # Set correct foreign key
+                            bulk_insert_data(cursor, contributors_table, [contributors])
             # Insert sleep sessions and reference correct 'daily_sleep' id by using 'day'.
             if 'sleep' in data_batch and data_batch['sleep']['data']:
                 sleep_sessions_records = []
