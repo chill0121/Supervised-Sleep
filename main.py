@@ -1,6 +1,7 @@
 import psycopg2
 from database.db_utilities import * #create_table, delete_table, table_list, DB_NAME, DB_USER, DB_HOST, DB_PORT
-from config.config import * #BASE_DIR, TOKEN_PATH, DATA_DIR, TODAY, TODAY_DATETIME
+from config.settings import * #BASE_DIR, TOKEN_PATH, DATA_DIR, TODAY, TODAY_DATETIME
+from oura_api.fetch_data import fetch_process_save_data
 
 def main():
     """Main function to initialize database and create tables."""
@@ -19,6 +20,8 @@ def main():
 
     except psycopg2.Error as e:
         print(f"Error connecting to PostgreSQL: {e}")
+
+    # fetch_process_save_data()
     
 if __name__ == '__main__':
     main()

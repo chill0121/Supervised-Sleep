@@ -2,7 +2,7 @@ import psycopg2
 from psycopg2.extras import execute_values
 import logging
 import os
-from config.config import * #BASE_DIR, TOKEN_PATH, DATA_DIR, TODAY, TODAY_DATETIME, DB_LOG_DIR
+from config.settings import * #BASE_DIR, TOKEN_PATH, DATA_DIR, TODAY, TODAY_DATETIME, DB_LOG_DIR
 import json
 
 # Initialize logging.
