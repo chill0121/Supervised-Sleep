@@ -74,7 +74,7 @@ table_dict = {'daily_sleep': 'id UUID PRIMARY KEY,'
                                 'sedentary_met_minutes INT NOT NULL,'
                                 'timestamp TIMESTAMPTZ NOT NULL,'
                                 'pending BOOLEAN NOT NULL DEFAULT FALSE',
-              'activity_contributors': 'activity_id UUID PRIMARY KEY REFERENCES daily_activity(id),'
+              'activity_contributors': 'activity_id UUID PRIMARY KEY REFERENCES daily_activity(id) ON DELETE CASCADE,'
                                        'meet_daily_targets INT NOT NULL,'
                                        'move_every_hour INT NOT NULL,'
                                        'recovery_time INT NOT NULL,'
@@ -87,7 +87,7 @@ table_dict = {'daily_sleep': 'id UUID PRIMARY KEY,'
                                  'temperature_deviation FLOAT NULL,'
                                  'temperature_trend_deviation FLOAT NULL,'
                                  'pending BOOLEAN NOT NULL DEFAULT FALSE',
-              'readiness_contributors': 'readiness_id UUID PRIMARY KEY REFERENCES daily_readiness(id),'
+              'readiness_contributors': 'readiness_id UUID PRIMARY KEY REFERENCES daily_readiness(id) ON DELETE CASCADE,'
                                         'activity_balance INT NULL,'
                                         'body_temperature INT NULL,'
                                         'hrv_balance INT NULL,'
@@ -236,15 +236,33 @@ def bulk_insert_data(cursor, table_name, data, batch_size=500):
         except psycopg2.Error as e:
             logging.error(f"Error inserting batch into '{table_name}': {e}")
 
-def update_pending_data(cursor, table_name, data, condition):
-    """Updates pending data when a full version is available."""
-    updates = ', '.join([f"{key} = %s" for key in data.keys()])
-    query = f"UPDATE {table_name} SET {updates} WHERE {condition} AND pending = TRUE;"
+# def update_pending_data(cursor, table_name, data, condition):
+#     """Updates pending data when a full version is available."""
+#     updates = ', '.join([f"{key} = %s" for key in data.keys()])
+#     query = f"UPDATE {table_name} SET {updates} WHERE {condition} AND pending = TRUE;"
     
+#     try:
+#         cursor.execute(query, tuple(data.values()))
+#     except psycopg2.Error as e:
+#         logging.error(f"Error updating pending data in '{table_name}': {e}")
+def update_pending_data(cursor, table_name, primary_key):
+    """
+    Removes pending (incomplete) data and prepares for fresh inserts.
+    Args:
+        cursor: Active database cursor.
+        table_name (str): Name of the table to update.
+        primary_key (str): Primary key column for deletion reference.
+    """
     try:
-        cursor.execute(query, tuple(data.values()))
+        delete_query = f"DELETE FROM {table_name} WHERE pending = TRUE RETURNING {primary_key};"
+        cursor.execute(delete_query)
+        deleted_rows = cursor.fetchall()
+
+        if deleted_rows:
+            logging.info(f"Deleted {len(deleted_rows)} pending rows from '{table_name}' before inserting fresh data.")
+    
     except psycopg2.Error as e:
-        logging.error(f"Error updating pending data in '{table_name}': {e}")
+        logging.error(f"Error removing pending data in '{table_name}': {e}")
 
 def is_file_already_uploaded(filename):
     """Check/Create dir and log file for previously processed API data. Reads log."""
@@ -279,7 +297,9 @@ def get_unprocessed_json_files():
     return files_to_upload
 
 def insert_json_files_to_db(connection, data_batch):
-    """Inserts API data.json files into the database. Calls insert_data() and update_pending_data()."""
+    """Inserts API data.json files into the database while ensuring pending data is replaced. 
+    Calls get_unprocessed_json_files(), bulk_insert_data(), update_pending_data(), 
+    mark_file_as_uploaded(), log_all_removed_columns."""
     try:
         cursor = connection.cursor()
         files_to_upload = sorted(get_unprocessed_json_files()) #Sorted to ensure chronology.
@@ -294,6 +314,9 @@ def insert_json_files_to_db(connection, data_batch):
                                         'daily_readiness': 'readiness_id'
                                         }
             daily_sleep_map = {}  # {day: daily_sleep.id}
+            # Ensure pending data is removed first
+            for table in ['daily_sleep', 'daily_activity', 'daily_readiness']:
+                update_pending_data(cursor, table, 'id')  # Delete pending rows before inserting
             # Insert daily tables first
             for table in ['daily_sleep', 'daily_activity', 'daily_readiness']:
                 if table in data_batch and data_batch[table]['data']:
