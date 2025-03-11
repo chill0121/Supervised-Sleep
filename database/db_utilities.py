@@ -236,15 +236,6 @@ def bulk_insert_data(cursor, table_name, data, batch_size=500):
         except psycopg2.Error as e:
             logging.error(f"Error inserting batch into '{table_name}': {e}")
 
-# def update_pending_data(cursor, table_name, data, condition):
-#     """Updates pending data when a full version is available."""
-#     updates = ', '.join([f"{key} = %s" for key in data.keys()])
-#     query = f"UPDATE {table_name} SET {updates} WHERE {condition} AND pending = TRUE;"
-    
-#     try:
-#         cursor.execute(query, tuple(data.values()))
-#     except psycopg2.Error as e:
-#         logging.error(f"Error updating pending data in '{table_name}': {e}")
 def update_pending_data(cursor, table_name, primary_key):
     """
     Removes pending (incomplete) data and prepares for fresh inserts.
@@ -314,6 +305,7 @@ def insert_json_files_to_db(connection, data_batch):
                                         'daily_readiness': 'readiness_id'
                                         }
             daily_sleep_map = {}  # {day: daily_sleep.id}
+            daily_activity_map = {}  # {day: daily_activty.id}
             # Ensure pending data is removed first
             for table in ['daily_sleep', 'daily_activity', 'daily_readiness']:
                 update_pending_data(cursor, table, 'id')  # Delete pending rows before inserting
@@ -325,6 +317,8 @@ def insert_json_files_to_db(connection, data_batch):
                         # Map `day` to `id` for later reference in `sleep_sessions`
                         if table == 'daily_sleep':
                             daily_sleep_map[record['day']] = record['id']
+                        if table == 'daily_activity':
+                            daily_activity_map[record['day']] = record['id']
                         bulk_insert_data(cursor, table, [record])  # Insert main record
                     
                         # If contributors exist, insert into the related table
@@ -352,9 +346,24 @@ def insert_json_files_to_db(connection, data_batch):
                 bulk_insert_data(cursor, "sleep_sessions", sleep_sessions_records)
 
             # Handle heart rate (can link to sleep or activity)
+            # if 'heartrate' in data_batch and data_batch['heartrate']['data']:
+            #     bulk_insert_data(cursor, 'heartrate', data_batch['heartrate']['data'])
             if 'heartrate' in data_batch and data_batch['heartrate']['data']:
+                heartrate_records = []
+                for hr in data_batch['heartrate']['data']:
+                    hr_record = hr.copy()  # Preserve original JSON structure
 
-                bulk_insert_data(cursor, 'heartrate', data_batch['heartrate']['data'])
+                    # Extract date from timestamp (YYYY-MM-DD format)
+                    hr_day = hr_record['timestamp'][:10]
+
+                    # Map to `daily_sleep_id` or `daily_activity_id`
+                    hr_record['daily_sleep_id'] = daily_sleep_map.get(hr_day, None)
+                    hr_record['daily_activity_id'] = daily_activity_map.get(hr_day, None)
+
+                    heartrate_records.append(hr_record)
+
+                bulk_insert_data(cursor, 'heartrate', heartrate_records)
+
             # Commit changes.
             connection.commit()
             mark_file_as_uploaded(filename, os.path.join(DB_LOG_DIR, 'insert_db_log.txt'))
