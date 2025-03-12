@@ -4,6 +4,7 @@ import logging
 import os
 from config.settings import * #BASE_DIR, TOKEN_PATH, DATA_DIR, TODAY, TODAY_DATETIME, DB_LOG_DIR
 import json
+from datetime import datetime, timedelta
 
 # Initialize logging.
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -239,10 +240,7 @@ def bulk_insert_data(cursor, table_name, data, batch_size=500):
 def update_pending_data(cursor, table_name, primary_key):
     """
     Removes pending (incomplete) data and prepares for fresh inserts.
-    Args:
-        cursor: Active database cursor.
-        table_name (str): Name of the table to update.
-        primary_key (str): Primary key column for deletion reference.
+    Ensures that `heartrate` data is properly deleted before inserting new records.
     """
     try:
         delete_query = f"DELETE FROM {table_name} WHERE pending = TRUE RETURNING {primary_key};"
@@ -251,9 +249,56 @@ def update_pending_data(cursor, table_name, primary_key):
 
         if deleted_rows:
             logging.info(f"Deleted {len(deleted_rows)} pending rows from '{table_name}' before inserting fresh data.")
-    
+
+        # Ensure heartrate records get properly reassigned if updating heartrate.
+        if table_name == 'heartrate':
+            cursor.execute("""
+                UPDATE heartrate
+                SET pending = FALSE
+                WHERE daily_sleep_id IS NOT NULL OR daily_activity_id IS NOT NULL;
+            """)
+            logging.info('Updated pending status for heartrate records.')
+
     except psycopg2.Error as e:
         logging.error(f"Error removing pending data in '{table_name}': {e}")
+
+def reassign_heartrate_foreign_keys(cursor):
+    """Reassigns heartrate.daily_sleep_id and heartrate.daily_activity_id after pending updates."""
+    logging.info("Reassigning heartrate foreign keys for updated sleep and activity records...")
+
+    # Reassign `daily_sleep_id`
+    cursor.execute("""
+        UPDATE heartrate h
+        SET daily_sleep_id = ds.id
+        FROM daily_sleep ds
+        WHERE h.daily_sleep_id IS NULL
+        AND ds.day = h.timestamp::DATE
+        RETURNING h.id;
+    """)
+    sleep_updates = cursor.rowcount
+    logging.info(f"{sleep_updates} heartrate records linked to daily_sleep.")
+
+    # Reassign `daily_activity_id`
+    cursor.execute("""
+        UPDATE heartrate h
+        SET daily_activity_id = da.id
+        FROM daily_activity da
+        WHERE h.daily_activity_id IS NULL
+        AND da.day = h.timestamp::DATE
+        RETURNING h.id;
+    """)
+    activity_updates = cursor.rowcount
+    logging.info(f"{activity_updates} heartrate records linked to daily_activity.")
+    # Explicitly mark heartrate `pending = FALSE`
+    cursor.execute("""
+        UPDATE heartrate
+        SET pending = FALSE
+        WHERE daily_sleep_id IS NOT NULL OR daily_activity_id IS NOT NULL;
+    """)
+    pending_updates = cursor.rowcount
+    logging.info(f"{pending_updates} heartrate records updated to pending = FALSE.")
+
+    logging.info('Foreign key reassignment and pending status update completed.\n')
 
 def is_file_already_uploaded(filename):
     """Check/Create dir and log file for previously processed API data. Reads log."""
@@ -287,6 +332,40 @@ def get_unprocessed_json_files():
                 #     data = json.load(file)
     return files_to_upload
 
+def log_missing_dates_from_json(json_data):
+    """Detects missing days in 'daily_sleep' data from the JSON file and logs them."""
+    log_path = os.path.join(DB_LOG_DIR, 'missing_records_log.txt')
+    
+    # Extract available dates from 'daily_sleep' and sort them.
+    sleep_dates = sorted(record['day'] for record in json_data.get('daily_sleep', {}).get('data', []))
+
+    if not sleep_dates:
+        logging.warning("No daily_sleep data found in JSON file.")
+        return
+
+    # Convert string dates to datetime objects.
+    date_objects = [datetime.strptime(date, '%Y-%m-%d') for date in sleep_dates]
+    
+    # Detect missing days.
+    missing_days = []
+    for i in range(len(date_objects) - 1):
+        expected_date = date_objects[i] + timedelta(days=1)
+        actual_date = date_objects[i + 1]
+        
+        while expected_date < actual_date:  # Check for gaps.
+            missing_days.append(expected_date.strftime('%Y-%m-%d'))
+            expected_date += timedelta(days=1)
+
+    # Log missing days if any.
+    if missing_days:
+        with open(log_path, 'a') as log_file:
+            for day in missing_days:
+                log_file.write(f"Missing daily_sleep data for {day}\n")
+
+        logging.warning(f"Missing daily_sleep records for: {', '.join(missing_days)}")
+    else:
+        logging.info('No missing daily_sleep records detected.')
+
 def insert_json_files_to_db(connection, data_batch):
     """Inserts API data.json files into the database while ensuring pending data is replaced. 
     Calls get_unprocessed_json_files(), bulk_insert_data(), update_pending_data(), 
@@ -297,6 +376,8 @@ def insert_json_files_to_db(connection, data_batch):
         for filename in files_to_upload:
             with open(os.path.join(DATA_DIR,filename), 'r') as file:
                 data_batch = json.load(file)
+            # Extract all dates from the batch and log missing data dates.
+            log_missing_dates_from_json(data_batch)  # Check for missing dates
             logging.info(f"Inserting {filename} data into database.")
             # Handle tables that have one row per day.
             # Define correct foreign key names for each contributors table
@@ -364,8 +445,12 @@ def insert_json_files_to_db(connection, data_batch):
 
                 bulk_insert_data(cursor, 'heartrate', heartrate_records)
 
+            # Ensure heartrate foreign keys are updated after pending data is replaced.
+            reassign_heartrate_foreign_keys(cursor)
+
             # Commit changes.
             connection.commit()
+            
             mark_file_as_uploaded(filename, os.path.join(DB_LOG_DIR, 'insert_db_log.txt'))
             logging.info(f"Data inserted into the database successfully.")
         # Log all removed columns now that processing is done.
