@@ -117,10 +117,6 @@ def fetch_process_save_data():
             'end_datetime': TODAY_DATETIME
             }
         data = fetch_data(batch, headers, params_datetime if batch == 'heartrate' else params)
-        # if batch == 'heartrate':
-        #     data = fetch_data(batch, headers, params_datetime)
-        # else:
-        #     data = fetch_data(batch, headers, params)
 
         if data:
             data_batch[batch] = data
