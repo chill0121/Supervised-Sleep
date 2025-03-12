@@ -5,6 +5,7 @@ import os
 from config.settings import * #BASE_DIR, TOKEN_PATH, DATA_DIR, TODAY, TODAY_DATETIME, DB_LOG_DIR
 import json
 from datetime import datetime, timedelta
+import pandas as pd
 
 # Initialize logging.
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -332,7 +333,7 @@ def get_unprocessed_json_files():
                 #     data = json.load(file)
     return files_to_upload
 
-def log_missing_dates_from_json(json_data):
+def log_missing_dates_from_json(json_data, filename):
     """Detects missing days in 'daily_sleep' data from the JSON file and logs them."""
     log_path = os.path.join(DB_LOG_DIR, 'missing_records_log.txt')
     
@@ -342,19 +343,11 @@ def log_missing_dates_from_json(json_data):
     if not sleep_dates:
         logging.warning("No daily_sleep data found in JSON file.")
         return
+    start_date, end_date = filename.replace('.json', '').split('_to_')
+    file_date_range = pd.date_range(start_date, end_date, freq='d').strftime('%Y-%m-%d')
 
-    # Convert string dates to datetime objects.
-    date_objects = [datetime.strptime(date, '%Y-%m-%d') for date in sleep_dates]
-    
     # Detect missing days.
-    missing_days = []
-    for i in range(len(date_objects) - 1):
-        expected_date = date_objects[i] + timedelta(days=1)
-        actual_date = date_objects[i + 1]
-        
-        while expected_date < actual_date:  # Check for gaps.
-            missing_days.append(expected_date.strftime('%Y-%m-%d'))
-            expected_date += timedelta(days=1)
+    missing_days = set(file_date_range) - set(sleep_dates)
 
     # Log missing days if any.
     if missing_days:
@@ -377,7 +370,7 @@ def insert_json_files_to_db(connection, data_batch):
             with open(os.path.join(DATA_DIR,filename), 'r') as file:
                 data_batch = json.load(file)
             # Extract all dates from the batch and log missing data dates.
-            log_missing_dates_from_json(data_batch)  # Check for missing dates
+            log_missing_dates_from_json(data_batch, filename)  # Check for missing dates
             logging.info(f"Inserting {filename} data into database.")
             # Handle tables that have one row per day.
             # Define correct foreign key names for each contributors table
@@ -424,7 +417,7 @@ def insert_json_files_to_db(connection, data_batch):
 
                     sleep_sessions_records.append(sleep_session)
 
-                bulk_insert_data(cursor, "sleep_sessions", sleep_sessions_records)
+                bulk_insert_data(cursor, 'sleep_sessions', sleep_sessions_records)
 
             # Handle heart rate (can link to sleep or activity)
             # if 'heartrate' in data_batch and data_batch['heartrate']['data']:
