@@ -204,7 +204,10 @@ def log_all_removed_columns():
         log_removed_columns(table_name, removed_columns)
 
 def bulk_insert_data(cursor, table_name, data, batch_size=500):
-    """Efficiently inserts multiple records in batches."""
+    """Efficiently inserts multiple records in batches.
+        - Uses `ON CONFLICT DO UPDATE` only for `heartrate`
+        - All other tables rely on `update_pending_data()` to delete stale records.
+    """
     if not data:
         return
 
@@ -224,11 +227,17 @@ def bulk_insert_data(cursor, table_name, data, batch_size=500):
           AND constraint_name = '{table_name}_pkey';
     """)
     primary_key = cursor.fetchone()
-    # Only use ON CONFLICT if a primary key exists
-    conflict_clause = f"ON CONFLICT ({primary_key[0]}) DO NOTHING" if primary_key else ""
+
+    # If table is `heartrate`, use `ON CONFLICT DO UPDATE`
+    if table_name == 'heartrate' and primary_key:
+        conflict_clause = f"""
+            ON CONFLICT ({primary_key[0]}) 
+            DO UPDATE SET {', '.join([f"{col} = EXCLUDED.{col}" for col in columns if col != primary_key[0]])}
+        """
+    else:
+        conflict_clause = ""
 
     query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES %s {conflict_clause};"
-    # query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES %s ON CONFLICT ({columns[0]}) DO NOTHING;"
 
     for i in range(0, len(cleaned_data), batch_size):
         batch = cleaned_data[i : i + batch_size]
@@ -238,36 +247,38 @@ def bulk_insert_data(cursor, table_name, data, batch_size=500):
         except psycopg2.Error as e:
             logging.error(f"Error inserting batch into '{table_name}': {e}")
 
-def update_pending_data(cursor, table_name, primary_key):
-    """
-    Removes pending (incomplete) data and prepares for fresh inserts.
-    Ensures that `heartrate` data is properly deleted before inserting new records.
-    """
+def update_pending_data(cursor, table_name):
+    """Deletes pending data for all tables except heartrate. 
+    Updates heartrate instead of deleting to retain foreign key relations."""
     try:
-        delete_query = f"DELETE FROM {table_name} WHERE pending = TRUE RETURNING {primary_key};"
-        cursor.execute(delete_query)
-        deleted_rows = cursor.fetchall()
-
-        if deleted_rows:
-            logging.info(f"Deleted {len(deleted_rows)} pending rows from '{table_name}' before inserting fresh data.")
-
-        # Ensure heartrate records get properly reassigned if updating heartrate.
         if table_name == 'heartrate':
+            logging.info(f"Updating pending heartrate records instead of deleting...")
             cursor.execute("""
                 UPDATE heartrate
                 SET pending = FALSE
-                WHERE daily_sleep_id IS NOT NULL OR daily_activity_id IS NOT NULL;
+                WHERE pending = TRUE
+                AND (daily_sleep_id IS NOT NULL OR daily_activity_id IS NOT NULL);
             """)
             logging.info('Updated pending status for heartrate records.')
+        else:
+            delete_query = f"DELETE FROM {table_name} WHERE pending = TRUE RETURNING id;"
+            cursor.execute(delete_query)
+            deleted_rows = cursor.fetchall()
+
+            if deleted_rows:
+                logging.info(f"Deleted {len(deleted_rows)} pending rows from '{table_name}' before inserting fresh data.")
 
     except psycopg2.Error as e:
-        logging.error(f"Error removing pending data in '{table_name}': {e}")
+        logging.error(f"Error updating pending data in '{table_name}': {e}")
 
 def reassign_heartrate_foreign_keys(cursor):
-    """Reassigns heartrate.daily_sleep_id and heartrate.daily_activity_id after pending updates."""
-    logging.info("Reassigning heartrate foreign keys for updated sleep and activity records...")
+    """Efficiently reassigns heartrate foreign keys after pending data updates."""
+    logging.info('Optimizing heartrate foreign key reassignment...')
 
-    # Reassign `daily_sleep_id`
+    # Track which heartrate rows are updated
+    updated_heartrate_ids = []
+
+    # First, update only records where `daily_sleep_id` is NULL
     cursor.execute("""
         UPDATE heartrate h
         SET daily_sleep_id = ds.id
@@ -276,10 +287,12 @@ def reassign_heartrate_foreign_keys(cursor):
         AND ds.day = h.timestamp::DATE
         RETURNING h.id;
     """)
-    sleep_updates = cursor.rowcount
-    logging.info(f"{sleep_updates} heartrate records linked to daily_sleep.")
+    sleep_updates = cursor.fetchall()
+    updated_heartrate_ids.extend([row[0] for row in sleep_updates])
 
-    # Reassign `daily_activity_id`
+    logging.info(f"{len(sleep_updates)} heartrate records linked to daily_sleep.")
+
+    # Next, update only records where `daily_activity_id` is NULL
     cursor.execute("""
         UPDATE heartrate h
         SET daily_activity_id = da.id
@@ -288,18 +301,21 @@ def reassign_heartrate_foreign_keys(cursor):
         AND da.day = h.timestamp::DATE
         RETURNING h.id;
     """)
-    activity_updates = cursor.rowcount
-    logging.info(f"{activity_updates} heartrate records linked to daily_activity.")
-    # Explicitly mark heartrate `pending = FALSE`
-    cursor.execute("""
-        UPDATE heartrate
-        SET pending = FALSE
-        WHERE daily_sleep_id IS NOT NULL OR daily_activity_id IS NOT NULL;
-    """)
-    pending_updates = cursor.rowcount
-    logging.info(f"{pending_updates} heartrate records updated to pending = FALSE.")
+    activity_updates = cursor.fetchall()
+    updated_heartrate_ids.extend([row[0] for row in activity_updates])
 
-    logging.info('Foreign key reassignment and pending status update completed.\n')
+    logging.info(f"{len(activity_updates)} heartrate records linked to daily_activity.")
+
+    # Finally, update `pending=False` ONLY for rows that were just updated
+    if updated_heartrate_ids:
+        cursor.execute("""
+            UPDATE heartrate
+            SET pending = FALSE
+            WHERE id = ANY(%s);
+        """, (updated_heartrate_ids,))
+        logging.info(f"{len(updated_heartrate_ids)} heartrate records updated to pending = FALSE.")
+
+    logging.info('Foreign key reassignment complete.\n')
 
 def is_file_already_uploaded(filename):
     """Check/Create dir and log file for previously processed API data. Reads log."""
@@ -343,6 +359,7 @@ def log_missing_dates_from_json(json_data, filename):
     if not sleep_dates:
         logging.warning("No daily_sleep data found in JSON file.")
         return
+    # Initialize a list of the expected date range.
     start_date, end_date = filename.replace('.json', '').split('_to_')
     file_date_range = pd.date_range(start_date, end_date, freq='d').strftime('%Y-%m-%d')
 
@@ -382,7 +399,7 @@ def insert_json_files_to_db(connection, data_batch):
             daily_activity_map = {}  # {day: daily_activty.id}
             # Ensure pending data is removed first
             for table in ['daily_sleep', 'daily_activity', 'daily_readiness']:
-                update_pending_data(cursor, table, 'id')  # Delete pending rows before inserting
+                update_pending_data(cursor, table)  # Delete pending rows before inserting
             # Insert daily tables first
             for table in ['daily_sleep', 'daily_activity', 'daily_readiness']:
                 if table in data_batch and data_batch[table]['data']:
@@ -437,13 +454,12 @@ def insert_json_files_to_db(connection, data_batch):
                     heartrate_records.append(hr_record)
 
                 bulk_insert_data(cursor, 'heartrate', heartrate_records)
-
             # Ensure heartrate foreign keys are updated after pending data is replaced.
             reassign_heartrate_foreign_keys(cursor)
 
             # Commit changes.
             connection.commit()
-            
+
             mark_file_as_uploaded(filename, os.path.join(DB_LOG_DIR, 'insert_db_log.txt'))
             logging.info(f"Data inserted into the database successfully.")
         # Log all removed columns now that processing is done.

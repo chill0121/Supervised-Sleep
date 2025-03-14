@@ -7,7 +7,7 @@ def main():
     """Main function to initialize database and create tables."""
     # fetch_historical_data()
     try:
-        #fetch_process_save_data()
+        # fetch_process_save_data()
         connection = psycopg2.connect(database=DB_NAME, user=DB_USER, host=DB_HOST, port=DB_PORT)
         # Delete All for troubleshooting.
         for table in table_dict.keys():
