@@ -143,7 +143,7 @@ def delete_table(connection, table_name):
     """CASCADE drops table matching input table_name."""
     cursor = connection.cursor()
     try:
-        cursor.execute(f'DROP TABLE {table_name} CASCADE;') # NEED TO TEST CASCADE WHEN DATA IS IN.
+        cursor.execute(f'DROP TABLE {table_name} CASCADE;')
         connection.commit()
         logging.info(f"Table {table_name} dropped successfully.")
     except psycopg2.Error as e:
