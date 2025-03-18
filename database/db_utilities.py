@@ -5,7 +5,7 @@ import os
 from config.settings import * #BASE_DIR, TOKEN_PATH, DATA_DIR, TODAY, TODAY_DATETIME, DB_LOG_DIR
 import json
 from datetime import datetime, timedelta
-import pandas as pd
+from pandas import date_range
 
 # Initialize logging.
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -370,7 +370,7 @@ def log_missing_dates_from_json(json_data, filename):
         return
     # Initialize a list of the expected date range.
     start_date, end_date = filename.replace('.json', '').split('_to_')
-    file_date_range = pd.date_range(start_date, end_date, freq='d').strftime('%Y-%m-%d')
+    file_date_range = date_range(start_date, end_date, freq='d').strftime('%Y-%m-%d')
 
     # Detect missing days.
     missing_days = set(file_date_range) - set(sleep_dates)
