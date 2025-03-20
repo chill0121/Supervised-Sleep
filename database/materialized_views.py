@@ -50,23 +50,38 @@ views_dict = {'sleep_calendar':
                     """
             }
 
-def refresh_views(cursor):
+def refresh_views(cursor, view_name):
     """Refreshes materialized views, to be used whenever new API data is inserted into database."""
     try:
-        for view_name in views_dict.keys():
-            cursor.execute(f"REFRESH MATERIALIZED VIEW {view_name};")
-            logging.info(f"Refreshed materialized view: {view_name}")
+        # for view_name in views_dict.keys():
+        #     cursor.execute(f"REFRESH MATERIALIZED VIEW {view_name};")
+        #     logging.info(f"Refreshed materialized view: {view_name}")
+        cursor.execute(f"REFRESH MATERIALIZED VIEW {view_name};")
+        logging.info(f"Refreshed materialized view: {view_name}")
     except psycopg2.Error as e:
         logging.error(f"Error refreshing materialized views': {e}")
 
+# def view_exists(cursor, view_name):
+#     """Checks if a materialized view exists in the database."""
+#     cursor.execute("""
+#         SELECT EXISTS (
+#             SELECT 1 FROM pg_matviews WHERE matviewname = %s
+#             ) AS "exists";""", 
+#             (view_name,))
+#     return cursor.fetchone()[0]
+
 def view_exists(cursor, view_name):
     """Checks if a materialized view exists in the database."""
-    cursor.execute("""
-        SELECT EXISTS (
-            SELECT 1 FROM pg_matviews WHERE matviewname = %s
-            );""", 
-            (view_name, ))
-    return cursor.fetchone()[0]
+    try:
+        cursor.execute("""
+            SELECT EXISTS (
+                SELECT 1 FROM pg_matviews WHERE matviewname = %s
+                ) AS "exists";""", 
+                (view_name,))
+        return cursor.fetchone()[0]
+    except:
+        logging.error(f"Error checking if materialized view exists:")
+        return False
 
 def initialize_materialized_views(connection):
     """Creates materialized views if they don't exist, otherwise refreshes them."""
@@ -75,7 +90,7 @@ def initialize_materialized_views(connection):
         for view_name, query in views_dict.items():
             if view_exists(cursor, view_name):
                 logging.info(f"View {view_name} already exists. Refreshing instead.")
-                refresh_views(cursor)
+                refresh_views(cursor, view_name)
             else:
                 cursor.execute(query)
                 logging.info(f"Created materialized view: {view_name}")
