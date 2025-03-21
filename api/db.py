@@ -2,6 +2,8 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from config import settings
 
+# Handles PostgreSQL queries.
+
 # Database connection function
 def get_db_connection():
     return psycopg2.connect(
