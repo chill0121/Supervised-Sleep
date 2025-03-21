@@ -61,15 +61,6 @@ def refresh_views(cursor, view_name):
     except psycopg2.Error as e:
         logging.error(f"Error refreshing materialized views': {e}")
 
-# def view_exists(cursor, view_name):
-#     """Checks if a materialized view exists in the database."""
-#     cursor.execute("""
-#         SELECT EXISTS (
-#             SELECT 1 FROM pg_matviews WHERE matviewname = %s
-#             ) AS "exists";""", 
-#             (view_name,))
-#     return cursor.fetchone()[0]
-
 def view_exists(cursor, view_name):
     """Checks if a materialized view exists in the database."""
     try:
