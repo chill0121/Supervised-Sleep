@@ -2,6 +2,7 @@ import psycopg2
 from database.db_utilities import *
 from config.settings import *
 
+# Materialized Views: For default dashboard data, refreshed during every database update.
 mat_views_dict = {'sleep_calendar':
                         """
                         CREATE MATERIALIZED VIEW sleep_calendar AS
@@ -49,8 +50,13 @@ mat_views_dict = {'sleep_calendar':
                         ) t WHERE rn = 1;
                         """
                      }
-
-views_dict = {} # To be used for dynamic queries during user selection.
+# Virtual Views: To be used for dynamic queries during user selection.
+# TODO: Add the rest once dashboard is further along.
+views_dict = {'activity_details':
+              """
+              CREATE VIEW activity_details AS
+              SELECT da.day, da.steps, da.active_calories, da.equivalent_walking_distance
+              FROM daily_activity da;"""} 
 
 def refresh_views(cursor, view_name):
     """Refreshes materialized views, to be used whenever new API data is inserted into database."""
