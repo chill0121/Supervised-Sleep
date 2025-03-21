@@ -2,19 +2,13 @@ import psycopg2
 from psycopg2.extras import execute_values
 import logging
 import os
-from config.settings import * #BASE_DIR, TOKEN_PATH, DATA_DIR, TODAY, TODAY_DATETIME, DB_LOG_DIR
+from config import settings #BASE_DIR, TOKEN_PATH, settings.DATA_DIR, settings.DB_LOG_DIR
 import json
 from datetime import datetime, timedelta
 from pandas import date_range
 
 # Initialize logging.
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-# Database credentials
-DB_NAME = 'supervised_sleep'
-DB_USER = 'chill'
-DB_HOST = 'localhost'
-DB_PORT = '5432'
 
 table_dict = {'daily_sleep': 
                     'id UUID PRIMARY KEY,'
@@ -163,7 +157,7 @@ def delete_table(connection, table_name):
 
 def log_removed_columns(table_name, removed_columns):
     """Logs removed columns while ensuring no redundancy."""
-    log_path = os.path.join(DB_LOG_DIR, 'removed_columns_log.txt')
+    log_path = os.path.join(settings.DB_LOG_DIR, 'removed_columns_log.txt')
 
     # Initialize the existing logs as an empty dictionary
     existing_logs = {}
@@ -243,8 +237,8 @@ def bulk_insert_data(cursor, table_name, data, batch_size=500):
             ON CONFLICT ({primary_key[0]}) 
             DO UPDATE SET {', '.join([f"{col} = EXCLUDED.{col}" for col in columns if col != primary_key[0]])}
         """
-    else:
-        conflict_clause = ""
+    else: # No update needed, handled using pending data flag when necessary.
+        conflict_clause = "ON CONFLICT DO NOTHING"
 
     query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES %s {conflict_clause};"
 
@@ -328,9 +322,9 @@ def reassign_heartrate_foreign_keys(cursor):
 
 def is_file_already_uploaded(filename):
     """Check/Create dir and log file for previously processed API data. Reads log."""
-    if not os.path.exists(DB_LOG_DIR): # Check if directory exists.
-        os.makedirs(DB_LOG_DIR)
-    db_log_path = os.path.join(DB_LOG_DIR, 'insert_db_log.txt')
+    if not os.path.exists(settings.DB_LOG_DIR): # Check if directory exists.
+        os.makedirs(settings.DB_LOG_DIR)
+    db_log_path = os.path.join(settings.DB_LOG_DIR, 'insert_db_log.txt')
     if not os.path.exists(db_log_path):  # Check if file exists.
         with open(db_log_path, 'w') as log_file:
             logging.info(f'Log file "{db_log_path}" created.')
@@ -349,18 +343,18 @@ def get_unprocessed_json_files():
     Returns: List('file_names')"""
     # List all files in the folder
     files_to_upload = []
-    for filename in os.listdir(DATA_DIR):
+    for filename in os.listdir(settings.DATA_DIR):
         if filename.endswith('.json'):  # Only consider .json files
             if not is_file_already_uploaded(filename):
                 files_to_upload.append(filename)
                 # # If the file has not been uploaded, load and process it
-                # with open(os.path.join(DATA_DIR, filename), 'r') as file:
+                # with open(os.path.join(settings.DATA_DIR, filename), 'r') as file:
                 #     data = json.load(file)
     return files_to_upload
 
 def log_missing_dates_from_json(json_data, filename):
     """Detects missing days in 'daily_sleep' data from the JSON file and logs them."""
-    log_path = os.path.join(DB_LOG_DIR, 'missing_records_log.txt')
+    log_path = os.path.join(settings.DB_LOG_DIR, 'missing_records_log.txt')
     
     # Extract available dates from 'daily_sleep' and sort them.
     sleep_dates = sorted(record['day'] for record in json_data.get('daily_sleep', {}).get('data', []))
@@ -393,7 +387,7 @@ def insert_json_files_to_db(connection, data_batch):
         cursor = connection.cursor()
         files_to_upload = sorted(get_unprocessed_json_files()) #Sorted to ensure chronology.
         for filename in files_to_upload:
-            with open(os.path.join(DATA_DIR,filename), 'r') as file:
+            with open(os.path.join(settings.DATA_DIR,filename), 'r') as file:
                 data_batch = json.load(file)
             # Extract all dates from the batch and log missing data dates.
             log_missing_dates_from_json(data_batch, filename)  # Check for missing dates
@@ -467,7 +461,7 @@ def insert_json_files_to_db(connection, data_batch):
             # Commit changes.
             connection.commit()
 
-            mark_file_as_uploaded(filename, os.path.join(DB_LOG_DIR, 'insert_db_log.txt'))
+            mark_file_as_uploaded(filename, os.path.join(settings.DB_LOG_DIR, 'insert_db_log.txt'))
             logging.info(f"Data inserted into the database successfully.")
         # Log all removed columns now that processing is done.
         log_all_removed_columns()
