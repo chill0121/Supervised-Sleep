@@ -10,7 +10,7 @@ def refresh_materialized_views():
     """Refresh all materialized views after inserting new data."""
     queries = [
         "REFRESH MATERIALIZED VIEW sleep_calendar;",
-        "REFRESH MATERIALIZED VIEW heart_rate_trends;",
+        "REFRESH MATERIALIZED VIEW heartrate_trends;",
         "REFRESH MATERIALIZED VIEW stress_trends;",
         "REFRESH MATERIALIZED VIEW summary_statistics;"
     ]
