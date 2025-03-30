@@ -1,38 +1,119 @@
 # Supervised-Sleep
 
-This project is evolving from its original focus on statistical inference and machine learning exploration into a full end-to-end data pipeline. While the original analysis—covering EDA, feature engineering, statistical modeling, and machine learning—will remain as a valuable reference, the revamped version will emphasize automation, real-time data processing, and actionable insights from biometric data.
+This project has evolved from an initial focus on statistical inference and machine learning exploration into a fully automated **end-to-end data pipeline**. The original analysis—covering EDA, feature engineering, statistical modeling, and machine learning—remains a valuable reference. However, the new implementation prioritizes **real-time data processing, structured storage, and actionable insights** using a streamlined pipeline.  
 
-TODO: Expand on this pipeline summary with more specifics now that the project is underway.
+## **Project Overview**  
 
-The new pipeline will include:
+The pipeline is designed to fetch biometric and activity data from the Oura API, process and store it in a normalized relational database, serve it efficiently through a custom FastAPI backend, and visualize key insights in an interactive dashboard.  
 
-1. Scheduled API requests for data collection
-2. A data cleaning module
-3. Storage in an SQL database
-4. Machine learning modules for analysis
-5. A web-based dashboard for visualization
+### **Pipeline Flow**  
 
-The repository’s file structure will be updated to reflect this transition, marking the deprecation of the original implementation, and can be now found in the `./sleep_analysis` folder.
+1. **Data Ingestion:**  
+   - Scheduled API requests fetch data from the Oura API.  
+   - Implements batching to handle API constraints while ensuring up-to-date data.  
 
-## Issues encountered during the project and their solutions:
+2. **Data Processing & Storage:**  
+   - **Data normalization**: Raw data is structured into relational tables to maintain integrity.  
+   - **Handling incomplete data**: Partial records (e.g., current day’s data) are flagged as pending and updated upon finalization.  
+   - **Foreign key resolution**: Ensures relationships (e.g., linking heartrate to sleep sessions) remain intact.  
 
-1. **Incomplete and Redundant Data.**
-  - The data fetching function determines the most recent API pull and sets the last end date as the new start date. This approach minimizes redundancy but results in a one-day overlap between consecutive data fetches. While this overlap is beneficial in data consistency, it also introduces a challenge: every data pull will always include a partial day’s data. Excluding today's data is not an option, as one of the dashboard's goals is to display current sleep metrics, which are only available in today's data. To address this, multiple solutions will be implemented at several levels to manage redundancy while preserving useful real-time data.
-    - **API:**
-      - The data fetching function minimizes redundant API requests by setting the last recorded end date as the new start date. This ensures only the last day’s data overlaps between consecutive fetches, keeping redundancy to a minimum.
-      - Some of the partial data from today is still valuable. For example:
-        - Useful partial data: `daily_sleep`, `daily_activity`, etc., as they contain calculated scores for the previous day.
-        - Incomplete data: `activity`, `workout`, and other real-time metrics, which remain incomplete until the end of the current day.
-      - To handle this, a pending flag will be introduced:
-        - If the data being stored corresponds to today’s date, it will be marked as pending (True).
-        - On the next API fetch, the start date (which aligns with the previous end date) will be used to overwrite any data entries with a pending=True flag, ensuring only fully completed data remains. Further solutions are needed on the database level after this is completed.
-    - **Database:**
-      - Since the dashboard must be able to display useful but incomplete, the database will temporarily store today's partial data while keeping track of its incomplete (pending) status.
-      - When a future API pull retrieves the full day's data, the database will automatically overwrite the previously stored incomplete entries based on the pending flag.
-      - This ensures that users always see the most recent available data, with incomplete entries seamlessly replaced once fully updated information is available.
+3. **FastAPI Backend:**  
+   - Exposes RESTful API endpoints to serve both raw and preprocessed data to the dashboard.  
+   - Uses materialized views to precompute frequently queried datasets, reducing database load.  
 
-2. **Database Normalization.**
-  - 
+4. **Dashboard Visualization:**  
+   - Displays sleep trends, heartrate insights, stress levels, and summary statistics.  
+   - Features a color-coded sleep calendar and dynamic filters for user-adjustable views.  
+   - Future plans include machine learning-powered sleep recommendations based on biometric patterns.  
+
+### **Next Steps (In Progress)**  
+- Implement ML models to generate personalized sleep improvement suggestions.  
+- Optimize query efficiency for large datasets (e.g., heartrate) using additional indexing strategies.  
+- Expand API functionality to allow for real-time user interactions with the dashboard.  
+
+This system provides a scalable, efficient, and interpretable framework for analyzing personal biometric data, making it an ideal foundation for future predictive analytics.
+
+The repository’s file structure has been updated to reflect this transition, marking the deprecation of the original implementation, and can be now found in the `./sleep_analysis` folder.
+
+## **Issues Encountered & Solutions**
+
+### **1. Handling Incomplete & Redundant Data**
+#### **Issue:**
+- API fetches include a one-day overlap between consecutive pulls, ensuring consistency but introducing redundant and incomplete data.
+- Some real-time metrics (e.g., `activity`, `workout`) remain incomplete until the end of the current day.
+
+#### **Solution:**
+- **API Level:**
+  - The fetching function sets the last recorded end date as the new start date, minimizing redundant requests.
+  - Introduced a **pending flag**:
+    - Data for the current day is marked as `pending=True`.
+    - On the next fetch, entries with `pending=True` are overwritten with the final complete data.
+
+- **Database Level:**
+  - The database temporarily stores incomplete data while tracking its pending status.
+  - When a future API pull retrieves complete data, the database replaces pending entries.
+  - Ensures the dashboard always displays the most recent available data while seamlessly updating incomplete entries.
+
+### **2. API Data Fetching Constraints**
+#### **Issue:**
+- Oura API limits data fetches to 15-day intervals when including heartrate data.
+
+#### **Solution:**
+- Implemented a function to iteratively fetch historical data in **15-day increments**.
+- Ensures a complete backfill while adhering to API constraints.
+
+### **3. Data Retention & Conflict Handling**
+#### **Issue:**
+- Using `ON DELETE CASCADE` for all tables caused unnecessary deletions of linked data.
+
+#### **Solution:**
+- Applied `ON CONFLICT` resolution for `heartrate`, ensuring it persists while allowing `daily_sleep` and `daily_activity` to cascade.
+- Preserves continuous datasets (e.g., heartrate) while maintaining structured daily records.
+
+### **4. Handling Foreign Key Dependencies in Heartrate Table**
+#### **Issue:**
+- `daily_sleep_id` and `daily_activity_id` were `NULL` due to cascade effects when updating pending data.
+
+#### **Solution:**
+- Implemented `reassign_heartrate_foreign_keys()` to correctly link heartrate data after updates.
+- Prevents data loss and maintains accurate associations.
+
+### **5. Handling Missing API Response Fields**
+#### **Issue:**
+- Some API responses lacked expected keys, leading to `KeyError` during processing.
+
+#### **Solution:**
+- Modified `set_pending_flag()` to check for missing keys and log inconsistencies.
+- Prevents crashes and facilitates debugging.
+
+### **6. Optimizing Query Performance for Dashboard**
+#### **Issue:**
+- Frequently queried data (e.g., sleep calendar, heartrate trends) led to performance bottlenecks.
+
+#### **Solution:**
+- Implemented **materialized views** to precompute common queries.
+- Reduces query load and improves dashboard responsiveness.
+
+### **7. Structuring API for Dashboard & ML Model Integration**
+#### **Issue:**
+- Needed an efficient API to serve data to both the dashboard and future ML models.
+
+#### **Solution:**
+- Designed FastAPI endpoints for:
+  - Default dashboard data.
+  - User-adjustable queries.
+  - ML model access.
+- Ensures scalability and modularity.
+
+### **8. Handling Large Heartrate Datasets**
+#### **Issue:**
+- Large heartrate datasets made real-time querying inefficient.
+
+#### **Solution:**
+- Preprocessed heartrate trends (e.g., last 3 months, min/max/avg over last 3 days) upon data insertion.
+- Reduces computational overhead, improving dashboard performance.
+
+---
 
 *This project is licensed under the terms of the MIT License, but is intended for private use only.*
 
