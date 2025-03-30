@@ -50,7 +50,7 @@ In summary, these design choices will benefit our uses in the following ways:
 ---
 ### Entity Relationship Diagram
 
-<img src="https://github.com/chill0121/Supervised-Sleep/blob/main/database/ERDiagram_Grouped.png?raw=true" alt="ERD" width="1200"/>
+<img src="https://github.com/chill0121/Supervised-Sleep/blob/main/database/ERDiagram.png?raw=true" alt="ERD" width="1200"/>
 
 ---
 ### Schema Details
@@ -67,7 +67,7 @@ In summary, these design choices will benefit our uses in the following ways:
 #### **2. `sleep_contributors`**
 | Column          | Type  | Constraints         | Description                                    |
 |----------------|------|---------------------|------------------------------------------------|
-| sleep_id       | UUID | FOREIGN KEY $\rightarrow$ `daily_sleep(id)` ON DELETE CASCADE | Links to sleep record      |
+| sleep_id       | UUID | PRIMARY KEY, FOREIGN KEY $\rightarrow$ `daily_sleep(id)` ON DELETE CASCADE | Links to sleep record      |
 | deep_sleep     | INT  | NOT NULL            | Contribution of deep sleep to score            |
 | efficiency     | INT  | NOT NULL            | Sleep efficiency                               |
 | latency        | INT  | NOT NULL            | Time taken to fall asleep                      |
@@ -83,12 +83,24 @@ In summary, these design choices will benefit our uses in the following ways:
 | daily_sleep_id | UUID  | FOREIGN KEY $\rightarrow$ `daily_sleep(id)` ON DELETE CASCADE | Links to daily sleep summary |
 | bedtime_start | TIMESTAMP WITH TIME ZONE | NOT NULL | Sleep session start time |
 | bedtime_end   | TIMESTAMP WITH TIME ZONE | NOT NULL | Sleep session end time |
-| total_sleep   | INT     | NOT NULL   | Total sleep duration in seconds |
-| deep_sleep    | INT     | NOT NULL   | Deep sleep duration (seconds) |
-| rem_sleep     | INT     | NOT NULL   | REM sleep duration (seconds) |
-| light_sleep   | INT     | NOT NULL   | Light sleep duration (seconds) |
+| total_sleep_duration | INT     | NOT NULL   | Total sleep duration in seconds |
+| deep_sleep_duration | INT     | NOT NULL   | Deep sleep duration (seconds) |
+| rem_sleep_duration | INT     | NOT NULL   | REM sleep duration (seconds) |
+| light_sleep_duration | INT     | NOT NULL   | Light sleep duration (seconds) |
 | awake_time    | INT     | NOT NULL   | Time spent awake (seconds) |
-| lowest_heart_rate | INT | NOT NULL | Lowest recorded heart rate |
+| lowest_heart_rate | INT | NULL | Lowest recorded heart rate |
+| latency       | INT     | NOT NULL   | Latency in minutes |
+| efficiency    | INT     | NOT NULL   | Sleep efficiency percentage |
+| average_breath | FLOAT | NOT NULL | Average breaths per minute |
+| average_heart_rate | INT | NULL | Average heart rate |
+| average_hrv   | INT | NULL | Average heart rate variability |
+| restless_periods | INT | NOT NULL | Number of restless periods |
+| period        | INT | NOT NULL | Period of sleep phase |
+| sleep_phase_5_min | TEXT | NOT NULL | Sleep phase over 5 minutes |
+| time_in_bed   | INT | NOT NULL | Time spent in bed (minutes) |
+| sleep_score_delta | INT | NULL | Difference in sleep score from previous session |
+| low_battery_alert | BOOLEAN | NOT NULL DEFAULT FALSE | Low battery alert |
+| type          | TEXT    | NOT NULL   | Type of sleep session (e.g., nap, full sleep) |
 | pending       | BOOLEAN | NOT NULL DEFAULT FALSE | Indicates if data is incomplete |
 
 #### **4. `sleep_time_recommendations`**
@@ -113,16 +125,22 @@ In summary, these design choices will benefit our uses in the following ways:
 | medium_activity_time | INT | NOT NULL         | Duration of medium activity (seconds)       |
 | low_activity_time | INT | NOT NULL           | Duration of low activity (seconds)          |
 | sedentary_time | INT | NOT NULL              | Duration of sedentary time (seconds)        |
-| pending        | BOOLEAN | NOT NULL DEFAULT FALSE | Indicates if data is incomplete          |
+| average_met_minutes | FLOAT | NOT NULL | Average Met minutes                        |
+| high_activity_met_minutes | INT | NOT NULL | High activity Met minutes                  |
+| medium_activity_met_minutes | INT | NOT NULL | Medium activity Met minutes                |
+| low_activity_met_minutes | INT | NOT NULL | Low activity Met minutes                   |
+| sedentary_met_minutes | INT | NOT NULL | Sedentary Met minutes                      |
+| timestamp     | TIMESTAMP WITH TIME ZONE | NOT NULL | Timestamp of the record                   |
+| pending       | BOOLEAN | NOT NULL DEFAULT FALSE | Indicates if data is incomplete          |
 
 #### **6. `activity_contributors`**
 | Column           | Type  | Constraints         | Description                                     |
 |-----------------|------|---------------------|-------------------------------------------------|
-| activity_id     | UUID | FOREIGN KEY $\rightarrow$ `daily_activity(id)` ON DELETE CASCADE| Links to activity record |
+| activity_id     | UUID | PRIMARY KEY, FOREIGN KEY $\rightarrow$ `daily_activity(id)` ON DELETE CASCADE | Links to activity record |
 | meet_daily_targets | INT | NOT NULL | Contribution to activity score |
 | move_every_hour | INT | NOT NULL | Movement frequency per hour |
 | recovery_time   | INT  | NOT NULL | Recovery time metric |
-| stay_active     | INT  | NOT NULL | General activity level |
+| stay_active     | INT | NOT NULL | General activity level |
 | training_frequency | INT | NOT NULL | Frequency of training |
 | training_volume | INT | NOT NULL | Training volume |
 
@@ -132,22 +150,22 @@ In summary, these design choices will benefit our uses in the following ways:
 | id           | UUID    | PRIMARY KEY         | Unique identifier for the readiness record  |
 | day          | TIMESTAMP | UNIQUE, NOT NULL    | Date of readiness data                      |
 | score        | INT     | NOT NULL            | Readiness score                             |
-| temperature_deviation | FLOAT | NOT NULL | Deviation in body temperature               |
-| temperature_trend_deviation | FLOAT | NOT NULL | Trend deviation in body temperature         |
+| temperature_deviation | FLOAT | NULL | Deviation in body temperature               |
+| temperature_trend_deviation | FLOAT | NULL | Trend deviation in body temperature         |
 | pending        | BOOLEAN | NOT NULL DEFAULT FALSE | Indicates if data is incomplete          |
 
 #### **8. `readiness_contributors`**
 | Column             | Type  | Constraints         | Description                                    |
 |-------------------|------|---------------------|------------------------------------------------|
-| readiness_id      | UUID | FOREIGN KEY $\rightarrow$ `daily_readiness(id)` ON DELETE CASCADE | Links to readiness record |
-| activity_balance  | INT  | NOT NULL            | Balance between activity and rest             |
-| body_temperature  | INT  | NOT NULL            | Body temperature score                        |
-| hrv_balance       | INT  | NOT NULL            | HRV balance contribution                      |
-| previous_day_activity | INT | NOT NULL | Activity impact from previous day             |
-| previous_night    | INT  | NOT NULL            | Impact of previous night's sleep              |
+| readiness_id      | UUID | PRIMARY KEY, FOREIGN KEY $\rightarrow$ `daily_readiness(id)` ON DELETE CASCADE | Links to readiness record |
+| activity_balance  | INT  | NULL            | Balance between activity and rest             |
+| body_temperature  | INT  | NULL            | Body temperature score                        |
+| hrv_balance       | INT  | NULL            | HRV balance contribution                      |
+| previous_day_activity | INT | NULL | Activity impact from previous day             |
+| previous_night    | INT  | NULL            | Impact of previous night's sleep              |
 | recovery_index    | INT  | NOT NULL            | Recovery index metric                         |
 | resting_heart_rate | INT | NOT NULL | Resting heart rate                             |
-| sleep_balance     | INT  | NOT NULL            | Contribution of sleep balance to readiness    |
+| sleep_balance     | INT  | NULL            | Contribution of sleep balance to readiness    |
 
 #### **9. `heartrate`**
 | Column         | Type     | Constraints | Description |
@@ -159,6 +177,10 @@ In summary, these design choices will benefit our uses in the following ways:
 | daily_sleep_id | UUID  | FOREIGN KEY $\rightarrow$ `daily_sleep(id)` ON DELETE SET NULL | Links to daily sleep summary |
 | daily_activity_id | UUID | FOREIGN KEY $\rightarrow$ `daily_activity(id)` ON DELETE SET NULL | Links to daily activity summary |
 | pending        | BOOLEAN | NOT NULL DEFAULT FALSE | Indicates if data is incomplete          |
+
+---
+
+This schema now includes the additions found in the dictionary format. Let me know if you need further changes or details!
 
 ---
 ---
@@ -195,6 +217,6 @@ In summary, these design choices will benefit our uses in the following ways:
 | `activity_contributors` | `daily_activity_id` | `daily_activity(id)` | CASCADE |
 | `readiness_contributors` | `daily_readiness_id` | `daily_readiness(id)` | CASCADE |
 | `sleep_sessions`    | `daily_sleep_id`     | `daily_sleep(id)`      | CASCADE |
-| `heartrate`         | `daily_sleep_id` | `daily_sleep(id)` | CASCADE |
-| `heartrate`         | `daily_activity_id` | `daily_activity(id)` | CASCADE |
+| `heartrate`         | `daily_sleep_id` | `daily_sleep(id)` | DO NOTHING (Updates on conflict) |
+| `heartrate`         | `daily_activity_id` | `daily_activity(id)` | DO NOTHING (Updates on conflict) |
 | `sleep_time_recommendations` | `daily_sleep_id` | `daily_sleep(id)` | CASCADE |
