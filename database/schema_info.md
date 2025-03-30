@@ -179,10 +179,6 @@ In summary, these design choices will benefit our uses in the following ways:
 | pending        | BOOLEAN | NOT NULL DEFAULT FALSE | Indicates if data is incomplete          |
 
 ---
-
-This schema now includes the additions found in the dictionary format. Let me know if you need further changes or details!
-
----
 ---
 
 ### **Relationships**
