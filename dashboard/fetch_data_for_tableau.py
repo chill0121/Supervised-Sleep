@@ -1,0 +1,91 @@
+import requests
+import pandas as pd
+import os
+from tableauhyperapi import HyperProcess, Connection, Telemetry, TableDefinition, SqlType, Inserter
+
+# Define API endpoints
+API_BASE_URL = "0.0.0.0:8000"
+
+ENDPOINTS = {
+    "sleep_calendar": f"{API_BASE_URL}/sleep_calendar",
+    "heartrate_trends": f"{API_BASE_URL}/heartrate_trends",
+    "summary_statistics": f"{API_BASE_URL}/summary_statistics",
+    "stress_trends": f"{API_BASE_URL}/stress_trends"
+}
+
+# Output directory
+OUTPUT_DIR = "tableau_data"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+# Function to fetch data from API
+def fetch_data(endpoint):
+    try:
+        response = requests.get(endpoint)
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException as e:
+        print(f"Error fetching data from {endpoint}: {e}")
+        return None
+
+# Function to save JSON data as CSV
+def save_as_csv(data, filename):
+    if data and "data" in data:
+        df = pd.DataFrame(data["data"])
+        csv_path = os.path.join(OUTPUT_DIR, f"{filename}.csv")
+        df.to_csv(csv_path, index=False)
+        print(f"Saved CSV: {csv_path}")
+
+# Function to save JSON data as a Tableau Hyper file
+def save_as_hyper(data, filename, table_def):
+    hyper_path = os.path.join(OUTPUT_DIR, f"{filename}.hyper")
+    with HyperProcess(telemetry=Telemetry.SEND_USAGE_DATA_TO_TABLEAU) as hyper:
+        with Connection(endpoint=hyper.endpoint, database=hyper_path, create_mode="create") as connection:
+            connection.catalog.create_table(table_def)
+            with Inserter(connection, table_def) as inserter:
+                for row in data["data"]:
+                    inserter.add(tuple(row.values()))
+                inserter.execute()
+    print(f"Saved Hyper file: {hyper_path}")
+
+# Define Hyper table schemas
+sleep_calendar_table = TableDefinition("sleep_calendar", [
+    TableDefinition.Column("day", SqlType.text()),
+    TableDefinition.Column("sleep_score", SqlType.integer())
+])
+
+heartrate_trends_table = TableDefinition("heartrate_trends", [
+    TableDefinition.Column("day", SqlType.text()),
+    TableDefinition.Column("avg_heart_rate", SqlType.integer()),
+    TableDefinition.Column("min_heart_rate", SqlType.integer()),
+    TableDefinition.Column("max_heart_rate", SqlType.integer())
+])
+
+summary_statistics_table = TableDefinition("summary_statistics", [
+    TableDefinition.Column("day", SqlType.text()),
+    TableDefinition.Column("sleep_score", SqlType.integer()),
+    TableDefinition.Column("activity_score", SqlType.integer()),
+    TableDefinition.Column("readiness_score", SqlType.integer())
+])
+
+# stress_trends_table = TableDefinition("stress_trends", [
+#     TableDefinition.Column("day", SqlType.text()),
+#     TableDefinition.Column("stress_score", SqlType.integer())
+# ])
+
+# Fetch data and save as CSV and Hyper
+for key, endpoint in ENDPOINTS.items():
+    data = fetch_data(endpoint)
+    if data:
+        save_as_csv(data, key)
+
+        # Save as Hyper file
+        if key == "sleep_calendar":
+            save_as_hyper(data, key, sleep_calendar_table)
+        elif key == "heartrate_trends":
+            save_as_hyper(data, key, heartrate_trends_table)
+        elif key == "summary_statistics":
+            save_as_hyper(data, key, summary_statistics_table)
+        # elif key == "stress_trends":
+        #     save_as_hyper(data, key, stress_trends_table)
+
+print("Data fetching and processing complete.")
