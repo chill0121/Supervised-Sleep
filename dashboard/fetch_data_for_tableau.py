@@ -40,7 +40,7 @@ def save_as_csv(data, filename):
 def save_as_hyper(data, filename, table_def):
     hyper_path = os.path.join(settings.TAB_DATA_DIR, f"{filename}.hyper")
     with HyperProcess(telemetry=Telemetry.SEND_USAGE_DATA_TO_TABLEAU) as hyper:
-        with Connection(endpoint=hyper.endpoint, database=hyper_path, create_mode=CreateMode.CREATE) as connection:
+        with Connection(endpoint=hyper.endpoint, database=hyper_path, create_mode=CreateMode.CREATE_AND_REPLACE) as connection:
             connection.catalog.create_table(table_def)
             with Inserter(connection, table_def) as inserter:
                 for row in data:
@@ -77,7 +77,6 @@ summary_statistics_table = TableDefinition("summary_statistics", [
 for key, endpoint in ENDPOINTS.items():
     data = fetch_data(endpoint)
     if data:
-        print(data)
         save_as_csv(data, key)
 
         # Save as Hyper file
