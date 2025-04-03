@@ -2,20 +2,21 @@ import requests
 import pandas as pd
 import os
 from tableauhyperapi import HyperProcess, Connection, Telemetry, TableDefinition, SqlType, Inserter
+from config import settings
 
 # Define API endpoints
-API_BASE_URL = "0.0.0.0:8000"
+API_BASE_URL = "http://0.0.0.0:8000"
 
 ENDPOINTS = {
-    "sleep_calendar": f"{API_BASE_URL}/sleep_calendar",
-    "heartrate_trends": f"{API_BASE_URL}/heartrate_trends",
-    "summary_statistics": f"{API_BASE_URL}/summary_statistics",
-    "stress_trends": f"{API_BASE_URL}/stress_trends"
+    "sleep_calendar": f"{API_BASE_URL}/sleep/calendar",
+    "heartrate_trends": f"{API_BASE_URL}/heartrate/trends",
+    "summary_statistics": f"{API_BASE_URL}/summary/statistics",
+    #"stress_trends": f"{API_BASE_URL}/stress_trends"
 }
 
-# Output directory
-OUTPUT_DIR = "tableau_data"
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+# Create output directory
+if not os.path.exists(settings.TAB_DATA_DIR): # Check if directory exists.
+    os.makedirs(settings.TAB_DATA_DIR)
 
 # Function to fetch data from API
 def fetch_data(endpoint):
@@ -31,13 +32,13 @@ def fetch_data(endpoint):
 def save_as_csv(data, filename):
     if data and "data" in data:
         df = pd.DataFrame(data["data"])
-        csv_path = os.path.join(OUTPUT_DIR, f"{filename}.csv")
+        csv_path = os.path.join(settings.TAB_DATA_DIR, f"{filename}.csv")
         df.to_csv(csv_path, index=False)
         print(f"Saved CSV: {csv_path}")
 
 # Function to save JSON data as a Tableau Hyper file
 def save_as_hyper(data, filename, table_def):
-    hyper_path = os.path.join(OUTPUT_DIR, f"{filename}.hyper")
+    hyper_path = os.path.join(settings.TAB_DATA_DIR, f"{filename}.hyper")
     with HyperProcess(telemetry=Telemetry.SEND_USAGE_DATA_TO_TABLEAU) as hyper:
         with Connection(endpoint=hyper.endpoint, database=hyper_path, create_mode="create") as connection:
             connection.catalog.create_table(table_def)
@@ -50,26 +51,26 @@ def save_as_hyper(data, filename, table_def):
 # Define Hyper table schemas
 sleep_calendar_table = TableDefinition("sleep_calendar", [
     TableDefinition.Column("day", SqlType.text()),
-    TableDefinition.Column("sleep_score", SqlType.integer())
+    TableDefinition.Column("sleep_score", SqlType.int())
 ])
 
 heartrate_trends_table = TableDefinition("heartrate_trends", [
     TableDefinition.Column("day", SqlType.text()),
-    TableDefinition.Column("avg_heart_rate", SqlType.integer()),
-    TableDefinition.Column("min_heart_rate", SqlType.integer()),
-    TableDefinition.Column("max_heart_rate", SqlType.integer())
+    TableDefinition.Column("avg_heart_rate", SqlType.int()),
+    TableDefinition.Column("min_heart_rate", SqlType.int()),
+    TableDefinition.Column("max_heart_rate", SqlType.int())
 ])
 
 summary_statistics_table = TableDefinition("summary_statistics", [
     TableDefinition.Column("day", SqlType.text()),
-    TableDefinition.Column("sleep_score", SqlType.integer()),
-    TableDefinition.Column("activity_score", SqlType.integer()),
-    TableDefinition.Column("readiness_score", SqlType.integer())
+    TableDefinition.Column("sleep_score", SqlType.int()),
+    TableDefinition.Column("activity_score", SqlType.int()),
+    TableDefinition.Column("readiness_score", SqlType.int())
 ])
 
 # stress_trends_table = TableDefinition("stress_trends", [
 #     TableDefinition.Column("day", SqlType.text()),
-#     TableDefinition.Column("stress_score", SqlType.integer())
+#     TableDefinition.Column("stress_score", SqlType.int())
 # ])
 
 # Fetch data and save as CSV and Hyper

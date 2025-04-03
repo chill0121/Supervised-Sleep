@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from routes import sleep, heartrate, activity, summary, advice, refresh
+from api.routes import sleep, heartrate, activity, summary, advice, refresh
 
 # Handles API routing.
 
@@ -17,6 +17,6 @@ app.include_router(refresh.router)
 def root():
     return {"message": "Welcome to the Supervised Sleep API"}
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+# if __name__ == "__main__":
+#     import uvicorn
+#     uvicorn.run(app, host="0.0.0.0", port=8000)

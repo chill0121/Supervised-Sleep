@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from db import fetch_query_results
+from api.db import fetch_query_results
 
 # Handles ML-generated daily advice.
 

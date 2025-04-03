@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from db import get_db_connection
+from api.db import get_db_connection
 
 # Manually refreshes materialized views.
 
