@@ -1,7 +1,7 @@
 import requests
 import pandas as pd
 import os
-from tableauhyperapi import HyperProcess, Connection, Telemetry, TableDefinition, SqlType, Inserter
+from tableauhyperapi import HyperProcess, Connection, Telemetry, TableDefinition, SqlType, Inserter, CreateMode
 from config import settings
 
 # Define API endpoints
@@ -30,8 +30,8 @@ def fetch_data(endpoint):
 
 # Function to save JSON data as CSV
 def save_as_csv(data, filename):
-    if data and "data" in data:
-        df = pd.DataFrame(data["data"])
+    if data:
+        df = pd.DataFrame(data)
         csv_path = os.path.join(settings.TAB_DATA_DIR, f"{filename}.csv")
         df.to_csv(csv_path, index=False)
         print(f"Saved CSV: {csv_path}")
@@ -40,11 +40,11 @@ def save_as_csv(data, filename):
 def save_as_hyper(data, filename, table_def):
     hyper_path = os.path.join(settings.TAB_DATA_DIR, f"{filename}.hyper")
     with HyperProcess(telemetry=Telemetry.SEND_USAGE_DATA_TO_TABLEAU) as hyper:
-        with Connection(endpoint=hyper.endpoint, database=hyper_path, create_mode="create") as connection:
+        with Connection(endpoint=hyper.endpoint, database=hyper_path, create_mode=CreateMode.CREATE) as connection:
             connection.catalog.create_table(table_def)
             with Inserter(connection, table_def) as inserter:
-                for row in data["data"]:
-                    inserter.add(tuple(row.values()))
+                for row in data:
+                    inserter.add_row(tuple(row.values()))
                 inserter.execute()
     print(f"Saved Hyper file: {hyper_path}")
 
@@ -56,7 +56,7 @@ sleep_calendar_table = TableDefinition("sleep_calendar", [
 
 heartrate_trends_table = TableDefinition("heartrate_trends", [
     TableDefinition.Column("day", SqlType.text()),
-    TableDefinition.Column("avg_heart_rate", SqlType.int()),
+    TableDefinition.Column("avg_heart_rate", SqlType.double()),
     TableDefinition.Column("min_heart_rate", SqlType.int()),
     TableDefinition.Column("max_heart_rate", SqlType.int())
 ])
@@ -77,6 +77,7 @@ summary_statistics_table = TableDefinition("summary_statistics", [
 for key, endpoint in ENDPOINTS.items():
     data = fetch_data(endpoint)
     if data:
+        print(data)
         save_as_csv(data, key)
 
         # Save as Hyper file
