@@ -8,3 +8,5 @@ ERD.key
 __pycache__
 /database/db_logs/removed_columns_log.txt
 /database/db_logs/insert_db_log.txt
+/dashboard/tableau_data
+hyperd.log
