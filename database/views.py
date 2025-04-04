@@ -3,7 +3,7 @@ from database.db_utilities import *
 from config.settings import *
 
 # Materialized Views: For default dashboard data, refreshed during every database update.
-mat_views_dict = {'sleep_calendar':
+mat_views_dict = {'sleep_calendar': # Probably add other important sleep data (HRV, Resting Heart Rate, Sleep Type Lengths, Total Length) and add to calendar in a minimalist way.
                         """
                         CREATE MATERIALIZED VIEW sleep_calendar AS
                         SELECT day, score AS sleep_score
