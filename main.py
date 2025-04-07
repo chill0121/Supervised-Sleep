@@ -1,6 +1,6 @@
 import psycopg2
-from database import db_utilities, views #create_table, delete_table, table_list
-from config import settings #BASE_DIR, TOKEN_PATH, DATA_DIR, TODAY, TODAY_DATETIME
+from database import db_utilities, views
+from config import settings
 from oura_api.fetch_data import fetch_process_save_data, fetch_historical_data
 from dashboard.export_to_tableau import generate_tableau_data
 
@@ -10,7 +10,7 @@ from api.server import app
 import time
 
 def start_api():
-    uvicorn.run('api.server:app', host='0.0.0.0', port=8000, reload=True)
+    uvicorn.run('api.server:app', host=settings.API_IP, port=settings.API_PORT, reload=True)
 
 def main():
     """Main function to initialize database and create tables."""

@@ -13,3 +13,7 @@ DB_NAME = 'supervised_sleep'
 DB_USER = 'chill'
 DB_HOST = 'localhost'
 DB_PORT = '5432'
+
+# FastAPI
+API_IP = '0.0.0.0'
+API_PORT = 8000
