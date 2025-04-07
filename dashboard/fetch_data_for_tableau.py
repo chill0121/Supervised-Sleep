@@ -34,7 +34,7 @@ def save_as_json(data: list[dict], filename: str):
         json.dump(data, f, indent=4)
     print(f"Saved {filename}.json to {filepath}")
 
-def fetch_data_for_tableau():
+def generate_tableau_data():
     """Fetches data from API endpoints and saves it as JSON for Tableau Public."""
     for key, url in ENDPOINTS.items():
         print(f"K: {key} | url: {url}")
@@ -52,4 +52,5 @@ def fetch_data_for_tableau():
         except Exception as e:
             print(f"Failed to fetch or save data from {url}: {e}")
 
-fetch_data_for_tableau()
+if __name__ == "__main__":
+    generate_tableau_data()

@@ -15,8 +15,4 @@ app.include_router(refresh.router)
 
 @app.get("/")
 def root():
-    return {"message": "Welcome to the Supervised Sleep API"}
-
-# if __name__ == "__main__":
-#     import uvicorn
-#     uvicorn.run(app, host="0.0.0.0", port=8000)
+    return {"message": "Welcome to the Supervised Sleep API"} 
