@@ -9,8 +9,8 @@ def main():
     # fetch_historical_data()
     try:
         
-        api_main.root()
-        # fetch_process_save_data()
+        
+        fetch_process_save_data()
 
         connection = psycopg2.connect(database=settings.DB_NAME, user=settings.DB_USER, host=settings.DB_HOST, port=settings.DB_PORT)
         # Delete All for troubleshooting.
@@ -18,14 +18,18 @@ def main():
         #     db_utilities.delete_table(connection, table)
         
         # Create All
-        # for table, columns in db_utilities.table_dict.items():
-        #     db_utilities.create_table(connection, {table: columns})
-        # db_utilities.insert_json_files_to_db(connection, 1)
-
+        for table, columns in db_utilities.table_dict.items():
+            db_utilities.create_table(connection, {table: columns})
+        db_utilities.insert_json_files_to_db(connection, 1)
+        
+        # Generate Views
         views.initialize_materialized_views(connection)
-        from dashboard import fetch_data_for_tableau
 
+        # Database to Dashboard API
+        from dashboard import fetch_data_for_tableau
+        api_main.root()
         # fetch_data_for_tableau()
+        
 
         connection.close()
 
