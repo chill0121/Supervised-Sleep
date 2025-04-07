@@ -6,11 +6,11 @@ from dashboard.fetch_data_for_tableau import generate_tableau_data
 
 from multiprocessing import Process
 import uvicorn
-from api.api_main import app
+from api.server import app
 import time
 
 def start_api():
-    uvicorn.run('api.api_main:app', host='0.0.0.0', port=8000, reload=True)
+    uvicorn.run('api.server:app', host='0.0.0.0', port=8000, reload=True)
 
 def main():
     """Main function to initialize database and create tables."""
@@ -56,5 +56,5 @@ def main():
     
     
 if __name__ == '__main__':
-    
+
     main()
