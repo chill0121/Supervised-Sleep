@@ -2,7 +2,7 @@ import psycopg2
 from database import db_utilities, views #create_table, delete_table, table_list
 from config import settings #BASE_DIR, TOKEN_PATH, DATA_DIR, TODAY, TODAY_DATETIME
 from oura_api.fetch_data import fetch_process_save_data, fetch_historical_data
-from dashboard.fetch_data_for_tableau import generate_tableau_data
+from dashboard.export_to_tableau import generate_tableau_data
 
 from multiprocessing import Process
 import uvicorn
