@@ -2,7 +2,7 @@ import requests
 import pandas as pd
 import os
 import json
-# from tableauhyperapi import HyperProcess, Connection, Telemetry, TableDefinition, SqlType, Inserter, CreateMode # Can't use with Tableau Public (Free) Version
+import logging
 from config import settings
 
 # Define API endpoints
@@ -32,12 +32,12 @@ def save_as_json(data: list[dict], filename: str):
     filepath = settings.TAB_DATA_DIR + f"/{filename}.json"
     with open(filepath, "w") as f:
         json.dump(data, f, indent=4)
-    print(f"Saved {filename}.json to {filepath}")
+    logging.info(f"Saved {filename}.json to {filepath}")
 
 def generate_tableau_data():
     """Fetches data from API endpoints and saves it as JSON for Tableau Public."""
     for key, url in ENDPOINTS.items():
-        print(f"K: {key} | url: {url}")
+        logging.info(f"K: {key} | url: {url}")
         try:
             response = requests.get(url)
             response.raise_for_status()
@@ -50,7 +50,7 @@ def generate_tableau_data():
             save_as_json(flat_data, key)
 
         except Exception as e:
-            print(f"Failed to fetch or save data from {url}: {e}")
+            logging.error(f"Failed to fetch or save data from {url}: {e}")
 
 if __name__ == "__main__":
     generate_tableau_data()
