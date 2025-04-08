@@ -2,6 +2,7 @@ import dash
 from dash import html, dcc
 import plotly.graph_objects as go
 import plotly.express as px
+from plotly.subplots import make_subplots
 import pandas as pd
 from config import settings
 
@@ -19,97 +20,95 @@ sleep_calendar_data['day'] = pd.to_datetime(sleep_calendar_data['day'])
 sleep_calendar_data['month'] = sleep_calendar_data['day'].dt.month
 sleep_calendar_data['year'] = sleep_calendar_data['day'].dt.year
 sleep_calendar_data['date_str'] = sleep_calendar_data['day'].dt.strftime('%Y-%m-%d')
+sleep_calendar_data['year_month'] = pd.to_datetime(sleep_calendar_data['day']).dt.to_period('M')
 
-def create_mini_calendar(month_data):
-    # Ensure 'day' is a datetime object using .loc[] to modify safely
-    month_data.loc[:, 'day'] = pd.to_datetime(month_data['day'])
-    
-    # Create a copy of the DataFrame to prevent the warning
-    month_data = month_data.copy()
-    
-    # Use .loc[] to modify safely
-    month_data.loc[:, 'year_month'] = month_data['day'].dt.to_period('M')
-
-    # Get the most recent 6 months (you can adjust the period if needed)
-    current_month = pd.to_datetime('today').normalize().to_period('M')
-    recent_months = pd.period_range(current_month - 5, current_month, freq='M')
-    
-    # Create a copy of the filtered data
-    month_data_filtered = month_data.loc[month_data['year_month'].isin(recent_months)].copy()
-    
-    if month_data_filtered.empty:
+def create_mini_calendar(month_data, zmin=None, zmax=None, show_legend=True):
+    # Get the month and year
+    if month_data.empty:
         return px.imshow(
-            [[None]*7]*6,  # Empty grid
-            labels=dict(x="Day of Week", y="Day", color="Sleep Score"),
+            [[None]*7]*6,
+            labels=dict(x="", y="", color="Sleep Score"),
             x=["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
             color_continuous_scale="Viridis",
-            aspect="auto"
+            aspect="auto",
+            zmin=zmin,
+            zmax=zmax
         ).update_layout(
             title="No Data Available",
             height=250,
             width=250,
             margin=dict(l=10, r=10, t=30, b=10),
-            xaxis=dict(showticklabels=False),
+            xaxis=dict(showticklabels=True, tickvals=list(range(7)), ticktext=["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]),
             yaxis=dict(showticklabels=False),
-            showlegend=False
+            coloraxis_showscale=show_legend
         )
 
-    # Loop over each month, including months with sparse data
-    calendar_figs = []
-    for period in recent_months:
-        month_data_period = month_data_filtered[month_data_filtered['year_month'] == period].copy()
-        
-        # Skip empty months
-        if month_data_period.empty:
-            continue
-        
-        # Pivot the data to create a grid format (rows = days, columns = weekdays)
-        month_data_pivot = month_data_period.pivot_table(
-            index=month_data_period['day'].dt.day,
-            columns=month_data_period['day'].dt.weekday,
-            values='sleep_score',
-            aggfunc='first'
-        )
+    month_data = month_data.copy()
+    month_data['day'] = pd.to_datetime(month_data['day'])
 
-        # Fill missing columns for weekdays (if any)
-        for weekday in range(7):
-            if weekday not in month_data_pivot.columns:
-                month_data_pivot[weekday] = None
-        
-        # Reindex columns to ensure the order is correct (Mon-Sun)
-        month_data_pivot = month_data_pivot.reindex(columns=[0, 1, 2, 3, 4, 5, 6])
+    first_day = month_data['day'].min().replace(day=1)
+    last_day = (first_day + pd.offsets.MonthEnd(1)).normalize()
 
-        # Add the figure for this month to the list
-        calendar_figs.append(px.imshow(
-            month_data_pivot,
-            labels=dict(x="Day of Week", y="Day", color="Sleep Score"),
-            x=["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-            color_continuous_scale="Viridis",
-            aspect="auto"
-        ).update_layout(
-            title=period.strftime('%b %Y'),
-            height=250,
-            width=250,
-            margin=dict(l=10, r=10, t=30, b=10),
-            xaxis=dict(showticklabels=False),
-            yaxis=dict(showticklabels=False),
-            showlegend=False
-        ))
+    calendar_start = first_day - pd.Timedelta(days=first_day.weekday())
+    calendar_end = last_day + pd.Timedelta(days=6 - last_day.weekday())
 
-    return calendar_figs
+    full_range = pd.date_range(calendar_start, calendar_end, freq='D')
 
-# Generate mini calendars for each of the last 6 months
+    calendar_df = pd.DataFrame({'day': full_range})
+    calendar_df['week'] = ((calendar_df['day'] - calendar_start).dt.days // 7).astype(int)
+    calendar_df['weekday'] = calendar_df['day'].dt.weekday
+
+    merged = calendar_df.merge(month_data[['day', 'sleep_score']], on='day', how='left')
+
+    calendar_grid = merged.pivot(index='week', columns='weekday', values='sleep_score')
+
+    for col in range(7):
+        if col not in calendar_grid.columns:
+            calendar_grid[col] = None
+    calendar_grid = calendar_grid[[0,1,2,3,4,5,6]]
+
+    fig = px.imshow(
+        calendar_grid.values,
+        labels=dict(x="", y="", color="Sleep Score"),
+        x=["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        color_continuous_scale="Viridis",
+        aspect="auto",
+        zmin=zmin,
+        zmax=zmax
+    )
+
+    fig.update_layout(
+        title=first_day.strftime('%B %Y'),
+        height=250,
+        width=250,
+        margin=dict(l=10, r=10, t=30, b=10),
+        xaxis=dict(
+            tickvals=list(range(7)),
+            ticktext=["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+            showticklabels=True
+        ),
+        yaxis=dict(showticklabels=False),
+        coloraxis_showscale=show_legend
+    )
+
+    return fig
+
+
+# Calculate global min and max for color scaling
+global_min = sleep_calendar_data['sleep_score'].min()
+global_max = sleep_calendar_data['sleep_score'].max()
+
+# Generate mini calendars for the last 6 months using shared scale
 calendar_figs = []
-# Get the last 6 months including the current month
-recent_months = pd.period_range(pd.to_datetime("today").to_period("M") - 5, pd.to_datetime("today").to_period("M"), freq="M")
-
-for period in recent_months:
-    month_data = sleep_calendar_data[sleep_calendar_data['day'].dt.to_period('M') == period]
-    fig_list = create_mini_calendar(month_data)
-    if isinstance(fig_list, list):
-        calendar_figs.extend(fig_list)
-    else:
-        calendar_figs.append(fig_list)
+for idx, period in enumerate(pd.period_range(
+    pd.to_datetime('today').normalize().to_period('M') - 5,
+    pd.to_datetime('today').normalize().to_period('M'),
+    freq='M'
+)):
+    month_data = sleep_calendar_data[sleep_calendar_data['year_month'] == period]
+    calendar_figs.append(create_mini_calendar(
+        month_data, zmin=global_min, zmax=global_max, show_legend=(idx == 0)  # Only show legend on first calendar
+    ))
 
 # Create heartrate line chart
 hr_fig = px.line(
