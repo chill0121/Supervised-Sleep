@@ -106,6 +106,7 @@ legend_fig.add_trace(go.Heatmap(
     z=[[global_min, global_max]],
     colorscale="Viridis",
     showscale=True,
+    opacity=0, # Hides the dumby heatmap plot
     colorbar=dict(
         title="Sleep Score",
         titleside="right",
@@ -121,11 +122,13 @@ legend_fig.add_trace(go.Heatmap(
 
 # Hide axes and margins
 legend_fig.update_layout(
-    height=300,
-    width=80,
+    height=500,
+    width=200,
     margin=dict(l=0, r=0, t=30, b=0),
     xaxis=dict(visible=False),
-    yaxis=dict(visible=False)
+    yaxis=dict(visible=False),
+    plot_bgcolor="rgba(0,0,0,0)",
+    paper_bgcolor="rgba(0,0,0,0)"
 )
 
 # Generate mini calendars for the last 6 months using shared scale
@@ -173,8 +176,8 @@ def summary_cards():
         cards.append(card)
 
     return html.Div(cards, style={
-        "width": "25%",
-        "height": "600px",  # adjust as needed
+        "width": "40%",
+        "height": "700px",  # adjust as needed
         "overflowY": "scroll",
         "display": "inline-block",
         "verticalAlign": "top",
