@@ -23,7 +23,6 @@ sleep_calendar_data['date_str'] = sleep_calendar_data['day'].dt.strftime('%Y-%m-
 sleep_calendar_data['year_month'] = pd.to_datetime(sleep_calendar_data['day']).dt.to_period('M')
 
 def create_mini_calendar(month_data, zmin=None, zmax=None, show_legend=False):
-    # Get the month and year
     if month_data.empty:
         return px.imshow(
             [[None]*7]*6,
@@ -53,29 +52,70 @@ def create_mini_calendar(month_data, zmin=None, zmax=None, show_legend=False):
     calendar_end = last_day + pd.Timedelta(days=6 - last_day.weekday())
 
     full_range = pd.date_range(calendar_start, calendar_end, freq='D')
-
     calendar_df = pd.DataFrame({'day': full_range})
     calendar_df['week'] = ((calendar_df['day'] - calendar_start).dt.days // 7).astype(int)
     calendar_df['weekday'] = calendar_df['day'].dt.weekday
+    calendar_df['day_number'] = calendar_df['day'].dt.day
+    calendar_df['date_str'] = calendar_df['day'].dt.strftime('%Y-%m-%d')
 
     merged = calendar_df.merge(month_data[['day', 'sleep_score']], on='day', how='left')
 
     calendar_grid = merged.pivot(index='week', columns='weekday', values='sleep_score')
+    day_number_grid = merged.pivot(index='week', columns='weekday', values='day_number')
+    date_str_grid = merged.pivot(index='week', columns='weekday', values='date_str')
 
     for col in range(7):
         if col not in calendar_grid.columns:
             calendar_grid[col] = None
-    calendar_grid = calendar_grid[[0,1,2,3,4,5,6]]
+            day_number_grid[col] = None
+            date_str_grid[col] = None
 
-    fig = px.imshow(
-        calendar_grid.values,
-        labels=dict(x="", y="", color="Sleep Score"),
+    calendar_grid = calendar_grid[[0,1,2,3,4,5,6]]
+    day_number_grid = day_number_grid[[0,1,2,3,4,5,6]]
+    date_str_grid = date_str_grid[[0,1,2,3,4,5,6]]
+
+    z_values = calendar_grid.values
+    custom_hover = [
+        [
+            f"{date_str_grid.iloc[i, j]}<br>Day: {int(day_number_grid.iloc[i, j]) if pd.notna(day_number_grid.iloc[i, j]) else ''}<extra></extra>"
+            for j in range(7)
+        ]
+        for i in range(len(calendar_grid))
+    ]
+
+    fig = go.Figure()
+
+    # Add heatmap
+    fig.add_trace(go.Heatmap(
+        z=z_values,
         x=["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-        color_continuous_scale="Viridis",
-        aspect="auto",
+        y=list(range(len(calendar_grid))),  # fake y-axis
+        hoverinfo='text',
+        text=custom_hover,
+        colorscale='Viridis',
         zmin=zmin,
-        zmax=zmax
-    )
+        zmax=zmax,
+        showscale=show_legend,
+        colorbar=dict(title="Sleep Score") if show_legend else None
+    ))
+
+    # Overlay day numbers in top-right of each cell
+    annotations = []
+    for i in range(len(day_number_grid)):
+        for j in range(7):
+            val = day_number_grid.iloc[i, j]
+            if pd.notna(val):
+                annotations.append(dict(
+                    text=str(int(val)),
+                    x=["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][j],
+                    y=i,
+                    xanchor='right',
+                    yanchor='top',
+                    showarrow=False,
+                    font=dict(size=10, color="white"),
+                    xshift=17,  # adjust position
+                    yshift=20  # adjust position
+                ))
 
     fig.update_layout(
         title=first_day.strftime('%B %Y'),
@@ -88,7 +128,7 @@ def create_mini_calendar(month_data, zmin=None, zmax=None, show_legend=False):
             showticklabels=True
         ),
         yaxis=dict(showticklabels=False),
-        coloraxis_showscale=show_legend
+        annotations=annotations
     )
 
     return fig
@@ -176,7 +216,7 @@ def summary_cards():
         cards.append(card)
 
     return html.Div(cards, style={
-        "width": "40%",
+        "width": "45%",
         "height": "700px",  # adjust as needed
         "overflowY": "scroll",
         "display": "inline-block",
