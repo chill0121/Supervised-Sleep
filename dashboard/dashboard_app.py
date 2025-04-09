@@ -76,12 +76,12 @@ def create_mini_calendar(month_data, zmin=None, zmax=None, show_legend=False):
 
     z_values = calendar_grid.values
     custom_hover = [
-        [
-            f"{date_str_grid.iloc[i, j]}<br>Day: {int(day_number_grid.iloc[i, j]) if pd.notna(day_number_grid.iloc[i, j]) else ''}<extra></extra>"
-            for j in range(7)
-        ]
-        for i in range(len(calendar_grid))
+    [
+        f"Sleep Score: {int(z_values[i][j])}" if not pd.isna(z_values[i][j]) else ""
+        for j in range(7)
     ]
+    for i in range(len(z_values))
+]
 
     fig = go.Figure()
 
