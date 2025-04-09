@@ -22,7 +22,7 @@ sleep_calendar_data['year'] = sleep_calendar_data['day'].dt.year
 sleep_calendar_data['date_str'] = sleep_calendar_data['day'].dt.strftime('%Y-%m-%d')
 sleep_calendar_data['year_month'] = pd.to_datetime(sleep_calendar_data['day']).dt.to_period('M')
 
-def create_mini_calendar(month_data, zmin=None, zmax=None, show_legend=True):
+def create_mini_calendar(month_data, zmin=None, zmax=None, show_legend=False):
     # Get the month and year
     if month_data.empty:
         return px.imshow(
@@ -98,8 +98,39 @@ def create_mini_calendar(month_data, zmin=None, zmax=None, show_legend=True):
 global_min = sleep_calendar_data['sleep_score'].min()
 global_max = sleep_calendar_data['sleep_score'].max()
 
+# Create a standalone figure for the master colorbar
+legend_fig = go.Figure()
+
+# Add a dummy heatmap just to generate the colorbar
+legend_fig.add_trace(go.Heatmap(
+    z=[[global_min, global_max]],
+    colorscale="Viridis",
+    showscale=True,
+    colorbar=dict(
+        title="Sleep Score",
+        titleside="right",
+        ticks="outside",
+        len=1.0,
+        thickness=20,
+        tickfont=dict(size=12),
+        titlefont=dict(size=14),
+        yanchor="middle",
+        y=0.5
+    )
+))
+
+# Hide axes and margins
+legend_fig.update_layout(
+    height=300,
+    width=80,
+    margin=dict(l=0, r=0, t=30, b=0),
+    xaxis=dict(visible=False),
+    yaxis=dict(visible=False)
+)
+
 # Generate mini calendars for the last 6 months using shared scale
 calendar_figs = []
+
 for idx, period in enumerate(pd.period_range(
     pd.to_datetime('today').normalize().to_period('M') - 5,
     pd.to_datetime('today').normalize().to_period('M'),
@@ -107,7 +138,7 @@ for idx, period in enumerate(pd.period_range(
 )):
     month_data = sleep_calendar_data[sleep_calendar_data['year_month'] == period]
     calendar_figs.append(create_mini_calendar(
-        month_data, zmin=global_min, zmax=global_max, show_legend=(idx == 0)  # Only show legend on first calendar
+        month_data, zmin=global_min, zmax=global_max, show_legend=False  # Only show legend on first calendar
     ))
 
 # Create heartrate line chart
@@ -149,21 +180,32 @@ def summary_cards():
         "verticalAlign": "top",
         "paddingRight": "10px"
     })
-    
 
 # Layout
 app.layout = html.Div([
     html.H1("Sleep Dashboard", style={"textAlign": "center"}),
 
     html.Div([
-        # Display the mini calendars in a grid
-        html.Div([dcc.Graph(figure=fig, config={"displayModeBar": False}) for fig in calendar_figs],
-                 style={"display": "flex", "flexWrap": "wrap", "justifyContent": "space-between"}),
+        # Left section: master legend and mini calendars
+        html.Div([
+            # Master legend
+            html.Div(
+                dcc.Graph(figure=legend_fig, config={"displayModeBar": False}),
+                style={"marginRight": "20px"}
+            ),
+
+            # Mini calendars
+            html.Div(
+                [dcc.Graph(figure=fig, config={"displayModeBar": False}) for fig in calendar_figs],
+                style={"display": "flex", "flexWrap": "wrap", "gap": "20px"}
+            )
+        ], style={"display": "flex", "alignItems": "flex-start"}),
 
         # Heart rate figure
         dcc.Graph(figure=hr_fig, config={"displayModeBar": False}),
     ], style={"width": "70%", "display": "inline-block", "padding": "0 20px"}),
 
+    # Summary cards on the right
     html.Div(summary_cards(), style={"width": "25%", "display": "inline-block", "verticalAlign": "top"}),
 
 ], style={"padding": "20px", "fontFamily": "Arial"})
