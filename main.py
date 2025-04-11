@@ -24,7 +24,7 @@ def main():
     try:
         
         # Oura Data Fetch
-        # fetch_process_save_data()
+        fetch_process_save_data()
 
         connection = psycopg2.connect(database=settings.DB_NAME, user=settings.DB_USER, host=settings.DB_HOST, port=settings.DB_PORT)
         # Delete All for troubleshooting.
@@ -32,18 +32,15 @@ def main():
         #     db_utilities.delete_table(connection, table)
         
         # Create All
-        # for table, columns in db_utilities.table_dict.items():
-        #     db_utilities.create_table(connection, {table: columns})
-        # db_utilities.insert_json_files_to_db(connection, 1)
+        for table, columns in db_utilities.table_dict.items():
+            db_utilities.create_table(connection, {table: columns})
+        db_utilities.insert_json_files_to_db(connection, 1)
         
         # Generate Views
         views.initialize_materialized_views(connection)
         # Database to Dashboard API
         generate_tableau_data()
-        
-        
-        # fetch_data_for_tableau()
-        
+        # Add a refresh to dashboard.
 
         connection.close()
 
@@ -53,8 +50,7 @@ def main():
     # Do not join the API process, let it continue running.
     print("API is running. Main setup is complete.")
 
-    
-    
+
 if __name__ == '__main__':
 
     main()
