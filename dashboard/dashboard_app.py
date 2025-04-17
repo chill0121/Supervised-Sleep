@@ -27,7 +27,7 @@ def create_mini_calendar(month_data, zmin=None, zmax=None, show_legend=False):
         return px.imshow(
             [[None]*7]*6,
             labels=dict(x="", y="", color="Sleep Score"),
-            x=["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+            x=["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
             color_continuous_scale="Viridis",
             aspect="auto",
             zmin=zmin,
@@ -37,7 +37,7 @@ def create_mini_calendar(month_data, zmin=None, zmax=None, show_legend=False):
             height=250,
             width=250,
             margin=dict(l=10, r=10, t=30, b=10),
-            xaxis=dict(showticklabels=True, tickvals=list(range(7)), ticktext=["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]),
+            xaxis=dict(showticklabels=True, tickvals=list(range(7)), ticktext=["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]),
             yaxis=dict(showticklabels=False),
             coloraxis_showscale=show_legend
         )
@@ -54,7 +54,7 @@ def create_mini_calendar(month_data, zmin=None, zmax=None, show_legend=False):
     full_range = pd.date_range(calendar_start, calendar_end, freq='D')
     calendar_df = pd.DataFrame({'day': full_range})
     calendar_df['week'] = ((calendar_df['day'] - calendar_start).dt.days // 7).astype(int)
-    calendar_df['weekday'] = calendar_df['day'].dt.weekday
+    calendar_df['weekday'] = calendar_df['day'].dt.dayofweek.apply(lambda x: (x + 1) % 7)
     calendar_df['day_number'] = calendar_df['day'].dt.day
     calendar_df['date_str'] = calendar_df['day'].dt.strftime('%Y-%m-%d')
 
@@ -74,22 +74,30 @@ def create_mini_calendar(month_data, zmin=None, zmax=None, show_legend=False):
     day_number_grid = day_number_grid[[0,1,2,3,4,5,6]]
     date_str_grid = date_str_grid[[0,1,2,3,4,5,6]]
 
-    z_values = calendar_grid.values
+    #z_values = calendar_grid.values
+    # Flip the calendar vertically so weeks go top-to-bottom
+    z_values = calendar_grid.values[::-1]
+    day_number_grid = day_number_grid.iloc[::-1]
+    date_str_grid = date_str_grid.iloc[::-1]
+
     custom_hover = [
     [
         f"Sleep Score: {int(z_values[i][j])}" if not pd.isna(z_values[i][j]) else ""
         for j in range(7)
     ]
     for i in range(len(z_values))
-]
+    ]
 
     fig = go.Figure()
+    num_weeks = len(z_values)  # usually 5 or 6
+    y_labels = list(range(num_weeks))  # [0, 1, 2, 3, 4]
+    y_labels_reversed = y_labels[::-1]  # [4, 3, 2, 1, 0]
 
     # Add heatmap
     fig.add_trace(go.Heatmap(
         z=z_values,
-        x=["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-        y=list(range(len(calendar_grid))),  # fake y-axis
+        x=["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+        y=y_labels_reversed, #list(range(len(calendar_grid))),  # fake y-axis
         hoverinfo='text',
         text=custom_hover,
         colorscale='Viridis',
@@ -107,7 +115,7 @@ def create_mini_calendar(month_data, zmin=None, zmax=None, show_legend=False):
             if pd.notna(val):
                 annotations.append(dict(
                     text=str(int(val)),
-                    x=["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][j],
+                    x=["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][j],
                     y=i,
                     xanchor='right',
                     yanchor='top',
@@ -124,10 +132,14 @@ def create_mini_calendar(month_data, zmin=None, zmax=None, show_legend=False):
         margin=dict(l=10, r=10, t=30, b=10),
         xaxis=dict(
             tickvals=list(range(7)),
-            ticktext=["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+            ticktext=["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
             showticklabels=True
         ),
-        yaxis=dict(showticklabels=False),
+        yaxis=dict(
+            showticklabels=False,
+            tickvals=y_labels_reversed,
+            ticktext=[],  # Leave empty or add week labels if desired
+        ),
         annotations=annotations
     )
 
@@ -181,7 +193,7 @@ for idx, period in enumerate(pd.period_range(
 )):
     month_data = sleep_calendar_data[sleep_calendar_data['year_month'] == period]
     calendar_figs.append(create_mini_calendar(
-        month_data, zmin=global_min, zmax=global_max, show_legend=False  # Only show legend on first calendar
+        month_data, zmin=global_min, zmax=global_max, show_legend=False
     ))
 
 # Create heartrate line chart
