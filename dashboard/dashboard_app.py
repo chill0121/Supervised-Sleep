@@ -3,8 +3,11 @@ from dash import html, dcc
 import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
+import plotly.graph_objects as go
 import pandas as pd
 from config import settings
+import calendar
+from datetime import datetime
 
 # Initialize Dash app
 app = dash.Dash(__name__)
@@ -22,186 +25,92 @@ sleep_calendar_data['year'] = sleep_calendar_data['day'].dt.year
 sleep_calendar_data['date_str'] = sleep_calendar_data['day'].dt.strftime('%Y-%m-%d')
 sleep_calendar_data['year_month'] = pd.to_datetime(sleep_calendar_data['day']).dt.to_period('M')
 
-def create_mini_calendar(month_data, zmin=None, zmax=None, show_legend=False):
-    if month_data.empty:
-        return px.imshow(
-            [[None]*7]*6,
-            labels=dict(x="", y="", color="Sleep Score"),
-            x=["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
-            color_continuous_scale="Viridis",
-            aspect="auto",
-            zmin=zmin,
-            zmax=zmax
-        ).update_layout(
-            title="No Data Available",
-            height=250,
-            width=250,
-            margin=dict(l=10, r=10, t=30, b=10),
-            xaxis=dict(showticklabels=True, tickvals=list(range(7)), ticktext=["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]),
-            yaxis=dict(showticklabels=False),
-            coloraxis_showscale=show_legend
-        )
+# Calculate global min and max for color scaling
+sleep_min = sleep_calendar_data['sleep_score'].min()
+sleep_max = sleep_calendar_data['sleep_score'].max()
 
-    month_data = month_data.copy()
-    month_data['day'] = pd.to_datetime(month_data['day'])
+def create_sleep_score_heatmap(sleep_calendar_data):
+    # Gracefully handle incomplete latest data
+    latest_available_day = sleep_calendar_data[sleep_calendar_data['sleep_score'].notna()]['day'].max()
+    if pd.isna(latest_available_day):
+        latest_available_day = pd.to_datetime('today').normalize()
 
-    first_day = month_data['day'].min().replace(day=1)
-    last_day = (first_day + pd.offsets.MonthEnd(1)).normalize()
+    end_date = latest_available_day
+    start_date = (end_date - pd.DateOffset(months=6)).normalize()
 
-    calendar_start = first_day - pd.Timedelta(days=first_day.weekday())
-    calendar_end = last_day + pd.Timedelta(days=6 - last_day.weekday())
+    # Create continuous date range
+    full_range = pd.date_range(start=start_date, end=end_date, freq='D')
 
-    full_range = pd.date_range(calendar_start, calendar_end, freq='D')
-    calendar_df = pd.DataFrame({'day': full_range})
-    calendar_df['week'] = ((calendar_df['day'] - calendar_start).dt.days // 7).astype(int)
-    calendar_df['weekday'] = calendar_df['day'].dt.dayofweek.apply(lambda x: (x + 1) % 7)
-    calendar_df['day_number'] = calendar_df['day'].dt.day
-    calendar_df['date_str'] = calendar_df['day'].dt.strftime('%Y-%m-%d')
+    # Reindex to include all days
+    sleep_data = sleep_calendar_data.set_index('day').reindex(full_range).reset_index()
+    sleep_data.rename(columns={'index': 'day'}, inplace=True)
+    # Sunday = 0, Saturday = 6
+    sleep_data['weekday'] = sleep_data['day'].dt.weekday.apply(lambda x: (x + 1) % 7)
+    # Anchor weeks to the Sunday on or before the start date
+    calendar_start = start_date - pd.Timedelta(days=((start_date.weekday() + 1) % 7))
+    sleep_data['week'] = ((sleep_data['day'] - calendar_start).dt.days // 7).astype(int)
+    sleep_data['month_str'] = sleep_data['day'].dt.strftime('%b')
 
-    merged = calendar_df.merge(month_data[['day', 'sleep_score']], on='day', how='left')
+    # Create 7xN matrix of sleep scores
+    weeks = sleep_data['week'].max() + 1
+    z = [[None for _ in range(weeks)] for _ in range(7)]
+    text = [["" for _ in range(weeks)] for _ in range(7)]
 
-    calendar_grid = merged.pivot(index='week', columns='weekday', values='sleep_score')
-    day_number_grid = merged.pivot(index='week', columns='weekday', values='day_number')
-    date_str_grid = merged.pivot(index='week', columns='weekday', values='date_str')
+    for _, row in sleep_data.iterrows():
+        week = row['week']
+        weekday = row['weekday']
+        score = row['sleep_score']
+        date_str = row['day'].strftime('%Y-%m-%d')
+        z[weekday][week] = score
+        text[weekday][week] = f"{date_str}<br>Sleep Score: {score:.0f}" if pd.notna(score) else f"{date_str}<br>No data"
+        # day_number = row['day'].day
 
-    for col in range(7):
-        if col not in calendar_grid.columns:
-            calendar_grid[col] = None
-            day_number_grid[col] = None
-            date_str_grid[col] = None
+    # Month label annotations
+    month_labels = sleep_data.groupby('week').first().reset_index()
+    seen = set()
+    annotations = []
+    for _, row in month_labels.iterrows():
+        label = row['month_str']
+        if label not in seen:
+            annotations.append(dict(
+                x=row['week']-1,
+                y=7.5,
+                text=label,
+                showarrow=False,
+                font=dict(size=12)
+            ))
+            seen.add(label)
 
-    calendar_grid = calendar_grid[[0,1,2,3,4,5,6]]
-    day_number_grid = day_number_grid[[0,1,2,3,4,5,6]]
-    date_str_grid = date_str_grid[[0,1,2,3,4,5,6]]
-
-    #z_values = calendar_grid.values
-    # Flip the calendar vertically so weeks go top-to-bottom
-    z_values = calendar_grid.values[::-1]
-    day_number_grid = day_number_grid.iloc[::-1]
-    date_str_grid = date_str_grid.iloc[::-1]
-
-    custom_hover = [
-    [
-        f"Sleep Score: {int(z_values[i][j])}" if not pd.isna(z_values[i][j]) else ""
-        for j in range(7)
-    ]
-    for i in range(len(z_values))
-    ]
-
-    fig = go.Figure()
-    num_weeks = len(z_values)  # usually 5 or 6
-    y_labels = list(range(num_weeks))  # [0, 1, 2, 3, 4]
-    y_labels_reversed = y_labels[::-1]  # [4, 3, 2, 1, 0]
-
-    # Add heatmap
-    fig.add_trace(go.Heatmap(
-        z=z_values,
-        x=["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
-        y=y_labels_reversed, #list(range(len(calendar_grid))),  # fake y-axis
-        hoverinfo='text',
-        text=custom_hover,
+    # Heatmap
+    fig = go.Figure(data=go.Heatmap(
+        z=z,
+        x=list(range(weeks)),
+        y=["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
         colorscale='Viridis',
-        zmin=zmin,
-        zmax=zmax,
-        showscale=show_legend,
-        colorbar=dict(title="Sleep Score") if show_legend else None
+        showscale=True,
+        zmin=sleep_min,
+        zmax=sleep_max,
+        hoverinfo='text',
+        text=text,
     ))
 
-    # Overlay day numbers in top-right of each cell
-    annotations = []
-    for i in range(len(day_number_grid)):
-        for j in range(7):
-            val = day_number_grid.iloc[i, j]
-            if pd.notna(val):
-                annotations.append(dict(
-                    text=str(int(val)),
-                    x=["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][j],
-                    y=i,
-                    xanchor='right',
-                    yanchor='top',
-                    showarrow=False,
-                    font=dict(size=10, color="white"),
-                    xshift=17,  # adjust position
-                    yshift=20  # adjust position
-                ))
-
     fig.update_layout(
-        title=first_day.strftime('%B %Y'),
-        height=250,
-        width=250,
-        margin=dict(l=10, r=10, t=30, b=10),
-        xaxis=dict(
-            tickvals=list(range(7)),
-            ticktext=["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
-            showticklabels=True
-        ),
-        yaxis=dict(
-            showticklabels=False,
-            tickvals=y_labels_reversed,
-            ticktext=[],  # Leave empty or add week labels if desired
-        ),
-        annotations=annotations
+        title=None,
+        yaxis=dict(autorange="reversed"),
+        annotations=annotations,
+        margin=dict(t=60, l=10, r=10, b=10),
+        height=400,
+        width=1140,
     )
 
     return fig
-
-
-# Calculate global min and max for color scaling
-global_min = sleep_calendar_data['sleep_score'].min()
-global_max = sleep_calendar_data['sleep_score'].max()
-
-# Create a standalone figure for the master colorbar
-legend_fig = go.Figure()
-
-# Add a dummy heatmap just to generate the colorbar
-legend_fig.add_trace(go.Heatmap(
-    z=[[global_min, global_max]],
-    colorscale="Viridis",
-    showscale=True,
-    opacity=0, # Hides the dumby heatmap plot
-    colorbar=dict(
-        title="Sleep Score",
-        titleside="right",
-        ticks="outside",
-        len=1.0,
-        thickness=20,
-        tickfont=dict(size=12),
-        titlefont=dict(size=14),
-        yanchor="middle",
-        y=0.5
-    )
-))
-
-# Hide axes and margins
-legend_fig.update_layout(
-    height=500,
-    width=200,
-    margin=dict(l=0, r=0, t=30, b=0),
-    xaxis=dict(visible=False),
-    yaxis=dict(visible=False),
-    plot_bgcolor="rgba(0,0,0,0)",
-    paper_bgcolor="rgba(0,0,0,0)"
-)
-
-# Generate mini calendars for the last 6 months using shared scale
-calendar_figs = []
-
-for idx, period in enumerate(pd.period_range(
-    pd.to_datetime('today').normalize().to_period('M') - 5,
-    pd.to_datetime('today').normalize().to_period('M'),
-    freq='M'
-)):
-    month_data = sleep_calendar_data[sleep_calendar_data['year_month'] == period]
-    calendar_figs.append(create_mini_calendar(
-        month_data, zmin=global_min, zmax=global_max, show_legend=False
-    ))
 
 # Create heartrate line chart
 hr_fig = px.line(
     heartrate_data,
     x="day",
     y="avg_heart_rate",
-    title="Average Sleep Heart Rate",
+    title=None,
     markers=True
 )
 hr_fig.update_layout(height=300, margin=dict(l=10, r=10, t=30, b=10))
@@ -229,7 +138,7 @@ def summary_cards():
 
     return html.Div(cards, style={
         "width": "45%",
-        "height": "700px",  # adjust as needed
+        "height": "765px",  # adjust as needed
         "overflowY": "scroll",
         "display": "inline-block",
         "verticalAlign": "top",
@@ -238,25 +147,19 @@ def summary_cards():
 
 # Layout
 app.layout = html.Div([
-    html.H1("Sleep Dashboard", style={"textAlign": "center"}),
+    html.H1("Sleep Dashboard", style={"textAlign": "right"}),
 
     html.Div([
-        # Left section: master legend and mini calendars
+        # Sleep Calendar
         html.Div([
-            # Master legend
-            html.Div(
-                dcc.Graph(figure=legend_fig, config={"displayModeBar": False}),
-                style={"marginRight": "20px"}
-            ),
-
-            # Mini calendars
-            html.Div(
-                [dcc.Graph(figure=fig, config={"displayModeBar": False}) for fig in calendar_figs],
-                style={"display": "flex", "flexWrap": "wrap", "gap": "20px"}
-            )
+            html.Div([
+                html.H4("Sleep Score Calendar", style={"textAlign": "center"}),
+                dcc.Graph(figure=create_sleep_score_heatmap(sleep_calendar_data))
+            ])
         ], style={"display": "flex", "alignItems": "flex-start"}),
 
         # Heart rate figure
+        html.H4("Average Sleep Heart Rate", style={"textAlign": "center"}),
         dcc.Graph(figure=hr_fig, config={"displayModeBar": False}),
     ], style={"width": "70%", "display": "inline-block", "padding": "0 20px"}),
 
