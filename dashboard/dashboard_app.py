@@ -50,6 +50,7 @@ def create_sleep_score_heatmap(sleep_calendar_data):
     calendar_start = start_date - pd.Timedelta(days=((start_date.weekday() + 1) % 7))
     sleep_data['week'] = ((sleep_data['day'] - calendar_start).dt.days // 7).astype(int)
     sleep_data['month_str'] = sleep_data['day'].dt.strftime('%b')
+    sleep_data['day_number'] = sleep_data['day'].dt.day
 
     # Create 7xN matrix of sleep scores
     weeks = sleep_data['week'].max() + 1
@@ -63,15 +64,15 @@ def create_sleep_score_heatmap(sleep_calendar_data):
         date_str = row['day'].strftime('%Y-%m-%d')
         z[weekday][week] = score
         text[weekday][week] = f"{date_str}<br>Sleep Score: {score:.0f}" if pd.notna(score) else f"{date_str}<br>No data"
-        # day_number = row['day'].day
 
-    # Month label annotations
-    month_labels = sleep_data.groupby('week').first().reset_index()
-    seen = set()
+    # Plot annotations (month label and day numbers)
+    # month_labels = sleep_data.groupby('week').first().reset_index()
+    seen_month = set() # Tracks if month has been annotated already
     annotations = []
-    for _, row in month_labels.iterrows():
+    for _, row in sleep_data.iterrows():
+        # Month label
         label = row['month_str']
-        if label not in seen:
+        if label not in seen_month:
             annotations.append(dict(
                 x=row['week']-1,
                 y=7.5,
@@ -79,7 +80,17 @@ def create_sleep_score_heatmap(sleep_calendar_data):
                 showarrow=False,
                 font=dict(size=12)
             ))
-            seen.add(label)
+            seen_month.add(label)
+        # Tile day number
+        annotations.append(dict(
+                x=row['week'],
+                y=row['weekday'],
+                text=row['day_number'],
+                showarrow=False,
+                font=dict(size=8),
+                xshift=11,
+                yshift=14
+            ))
 
     # Heatmap
     fig = go.Figure(data=go.Heatmap(
@@ -91,7 +102,7 @@ def create_sleep_score_heatmap(sleep_calendar_data):
         zmin=sleep_min,
         zmax=sleep_max,
         hoverinfo='text',
-        text=text,
+        text=text
     ))
 
     fig.update_layout(
@@ -102,6 +113,8 @@ def create_sleep_score_heatmap(sleep_calendar_data):
         height=400,
         width=1140,
     )
+    fig.update_xaxes(showgrid = False, showticklabels = False)
+    fig.update_yaxes(showgrid = False)
 
     return fig
 
@@ -147,7 +160,7 @@ def summary_cards():
 
 # Layout
 app.layout = html.Div([
-    html.H1("Sleep Dashboard", style={"textAlign": "right"}),
+    html.H1("Sleep Dashboard", style={"textAlign": "center"}),
 
     html.Div([
         # Sleep Calendar
