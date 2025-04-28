@@ -8,7 +8,7 @@ router = APIRouter(prefix="/heartrate", tags=["Heart Rate Data"])
 @router.get("/trends")
 def get_heart_rate_trends():
     """Fetch precomputed heart rate trends (3 months)."""
-    query = "SELECT * FROM heart_rate_trends;"
+    query = "SELECT * FROM heartrate_trends;"
     return fetch_query_results(query)
 
 @router.get("/custom")
