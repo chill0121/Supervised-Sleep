@@ -109,7 +109,7 @@ def create_sleep_score_heatmap(sleep_calendar_data):
         title=None,
         yaxis=dict(autorange="reversed"),
         annotations=annotations,
-        margin=dict(t=60, l=10, r=10, b=10),
+        margin=dict(t=40, l=10, r=10, b=10),
         height=400,
         width=1140,
     )
@@ -135,7 +135,7 @@ def summary_cards():
     cards = []
     for _, row in df.iterrows():
         card = html.Div([
-            html.H4(pd.to_datetime(row['day']).strftime("%b %d"), style={"marginBottom": "5px"}),
+            html.H4(pd.to_datetime(row['day']).strftime("%b %d"), style={"margin": "5px", "textAlign": "center"}),
             html.P(f"Sleep Score: {row['sleep_score']}", style={"margin": "2px"}),
             html.P(f"Activity Score: {row['activity_score']}", style={"margin": "2px"}),
             html.P(f"Readiness Score: {row['readiness_score']}", style={"margin": "2px"}),
@@ -145,7 +145,8 @@ def summary_cards():
             "marginBottom": "10px",
             "borderRadius": "10px",
             "boxShadow": "0 2px 4px rgba(0, 0, 0, 0.1)",
-            "backgroundColor": "#f9f9f9"
+            "backgroundColor": "#f9f9f9"#,
+            #"verticalAlign": "middle"
         })
         cards.append(card)
 
