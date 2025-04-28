@@ -46,7 +46,7 @@ mat_views_dict = {'sleep_calendar': # Probably add other important sleep data (H
                             FROM daily_sleep ds
                             JOIN daily_activity da ON ds.day = da.day
                             JOIN daily_readiness dr ON ds.day = dr.day
-                            WHERE ds.day >= NOW() - INTERVAL '7 days'
+                            WHERE ds.day >= NOW() - INTERVAL '9 days'
                         ) t WHERE rn = 1;
                         """
                      }
