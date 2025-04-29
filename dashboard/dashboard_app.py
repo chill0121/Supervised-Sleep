@@ -74,8 +74,8 @@ def create_sleep_score_heatmap(sleep_calendar_data):
         label = row['month_str']
         if label not in seen_month:
             annotations.append(dict(
-                x=row['week']-1,
-                y=7.5,
+                x=row['week'],
+                y=6.75,
                 text=label,
                 showarrow=False,
                 font=dict(size=12)
@@ -89,7 +89,7 @@ def create_sleep_score_heatmap(sleep_calendar_data):
                 showarrow=False,
                 font=dict(size=8),
                 xshift=11,
-                yshift=14
+                yshift=17
             ))
 
     # Heatmap
@@ -145,8 +145,7 @@ def summary_cards():
             "marginBottom": "10px",
             "borderRadius": "10px",
             "boxShadow": "0 2px 4px rgba(0, 0, 0, 0.1)",
-            "backgroundColor": "#f9f9f9"#,
-            #"verticalAlign": "middle"
+            "backgroundColor": "#f9f9f9"
         })
         cards.append(card)
 
