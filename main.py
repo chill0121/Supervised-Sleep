@@ -27,7 +27,7 @@ def main():
         fetch_process_save_data()
 
         connection = psycopg2.connect(database=settings.DB_NAME, user=settings.DB_USER, host=settings.DB_HOST, port=settings.DB_PORT)
-        # Delete All for troubleshooting.
+        # # Delete All for troubleshooting.
         # for table in db_utilities.table_dict.keys():
         #     db_utilities.delete_table(connection, table)
         

@@ -98,7 +98,7 @@ table_dict = {'daily_sleep':
                     'previous_day_activity INT NULL,'
                     'previous_night INT NULL,'
                     'recovery_index INT NOT NULL,'
-                    'resting_heart_rate INT NOT NULL,'
+                    'resting_heart_rate INT NULL,'
                     'sleep_balance INT NULL',
               'heartrate': 
                     'id SERIAL PRIMARY KEY,'
