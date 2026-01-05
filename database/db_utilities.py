@@ -85,7 +85,7 @@ table_dict = {'daily_sleep':
                     'training_volume INT NOT NULL',
               'daily_readiness': 
                     'id UUID PRIMARY KEY,'
-                    'day TIMESTAMP UNIQUE NOT NULL,'
+                    'day DATE UNIQUE NOT NULL,'
                     'score INT NOT NULL,'
                     'temperature_deviation FLOAT NULL,'
                     'temperature_trend_deviation FLOAT NULL,'
