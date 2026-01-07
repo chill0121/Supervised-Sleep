@@ -48,6 +48,88 @@ mat_views_dict = {'sleep_calendar': # Probably add other important sleep data (H
                             JOIN daily_readiness dr ON ds.day = dr.day
                             WHERE ds.day >= NOW() - INTERVAL '9 days'
                         ) t WHERE rn = 1;
+                        """,
+                  'weekly_averages':
+                        """
+                        CREATE MATERIALIZED VIEW weekly_averages AS
+                        SELECT 
+                            ROUND(AVG(sleep_score)::numeric, 0) as avg_sleep_score,
+                            ROUND(AVG(activity_score)::numeric, 0) as avg_activity_score,
+                            ROUND(AVG(readiness_score)::numeric, 0) as avg_readiness_score
+                        FROM (
+                            SELECT ds.score as sleep_score, da.score as activity_score, dr.score as readiness_score
+                            FROM daily_sleep ds
+                            JOIN daily_activity da ON ds.day = da.day
+                            JOIN daily_readiness dr ON ds.day::DATE = dr.day
+                            WHERE ds.day >= NOW() - INTERVAL '7 days'
+                        ) t;
+                        """,
+                  'week_comparison':
+                        """
+                        CREATE MATERIALIZED VIEW week_comparison AS
+                        WITH this_week AS (
+                            SELECT 
+                                AVG(ds.score) as sleep_score,
+                                AVG(da.score) as activity_score,
+                                AVG(dr.score) as readiness_score
+                            FROM daily_sleep ds
+                            JOIN daily_activity da ON ds.day = da.day
+                            JOIN daily_readiness dr ON ds.day::DATE = dr.day
+                            WHERE ds.day >= NOW() - INTERVAL '7 days'
+                        ),
+                        last_week AS (
+                            SELECT 
+                                AVG(ds.score) as sleep_score,
+                                AVG(da.score) as activity_score,
+                                AVG(dr.score) as readiness_score
+                            FROM daily_sleep ds
+                            JOIN daily_activity da ON ds.day = da.day
+                            JOIN daily_readiness dr ON ds.day::DATE = dr.day
+                            WHERE ds.day >= NOW() - INTERVAL '14 days'
+                            AND ds.day < NOW() - INTERVAL '7 days'
+                        )
+                        SELECT 
+                            ROUND((tw.sleep_score - lw.sleep_score)::numeric, 0) as sleep_delta,
+                            ROUND((tw.activity_score - lw.activity_score)::numeric, 0) as activity_delta,
+                            ROUND((tw.readiness_score - lw.readiness_score)::numeric, 0) as readiness_delta
+                        FROM this_week tw, last_week lw;
+                        """,
+                  'sleep_breakdown':
+                        """
+                        CREATE MATERIALIZED VIEW sleep_breakdown AS
+                        SELECT 
+                            ROUND(AVG(deep_sleep_duration)::numeric, 0) as avg_deep_seconds,
+                            ROUND(AVG(rem_sleep_duration)::numeric, 0) as avg_rem_seconds,
+                            ROUND(AVG(light_sleep_duration)::numeric, 0) as avg_light_seconds,
+                            ROUND(AVG(total_sleep_duration)::numeric, 0) as avg_total_seconds,
+                            ROUND(AVG(total_sleep_duration / 3600.0)::numeric, 1) as avg_total_hours
+                        FROM sleep_sessions
+                        WHERE bedtime_start >= NOW() - INTERVAL '7 days'
+                        AND type = 'long_sleep';
+                        """,
+                  'chronotype_stats':
+                        """
+                        CREATE MATERIALIZED VIEW chronotype_stats AS
+                        WITH sleep_times AS (
+                            SELECT 
+                                CASE 
+                                    WHEN EXTRACT(HOUR FROM (bedtime_start AT TIME ZONE 'America/Los_Angeles')::time) >= 18 
+                                    THEN EXTRACT(EPOCH FROM (bedtime_start AT TIME ZONE 'America/Los_Angeles')::time) - 86400
+                                    ELSE EXTRACT(EPOCH FROM (bedtime_start AT TIME ZONE 'America/Los_Angeles')::time)
+                                END as bedtime_seconds,
+                                EXTRACT(EPOCH FROM (bedtime_end AT TIME ZONE 'America/Los_Angeles')::time) as wake_seconds,
+                                total_sleep_duration,
+                                efficiency
+                            FROM sleep_sessions
+                            WHERE bedtime_start >= NOW() - INTERVAL '7 days'
+                            AND type = 'long_sleep'
+                        )
+                        SELECT 
+                            TO_CHAR((AVG(bedtime_seconds) + 86400 || ' seconds')::interval, 'HH12:MI AM') as avg_bedtime,
+                            TO_CHAR((AVG(wake_seconds) || ' seconds')::interval, 'HH12:MI AM') as avg_wake_time,
+                            ROUND(AVG(total_sleep_duration / 3600.0)::numeric, 1) as avg_duration_hours,
+                            ROUND(AVG(efficiency)::numeric, 0) as avg_efficiency
+                        FROM sleep_times;
                         """
                      }
 # Virtual Views: To be used for dynamic queries during user selection.

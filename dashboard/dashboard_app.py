@@ -17,6 +17,10 @@ app.title = "Sleep Dashboard"
 sleep_calendar_data = pd.read_json(settings.TAB_DATA_DIR + "/sleep_calendar.json")
 heartrate_data = pd.read_json(settings.TAB_DATA_DIR + "/heartrate_trends.json")
 summary_stats_data = pd.read_json(settings.TAB_DATA_DIR + "/summary_statistics.json")
+weekly_averages_data = pd.read_json(settings.TAB_DATA_DIR + "/weekly_averages.json")
+week_comparison_data = pd.read_json(settings.TAB_DATA_DIR + "/week_comparison.json")
+sleep_breakdown_data = pd.read_json(settings.TAB_DATA_DIR + "/sleep_breakdown.json")
+chronotype_data = pd.read_json(settings.TAB_DATA_DIR + "/chronotype_stats.json", convert_dates=False)
 
 # Prepare data
 sleep_calendar_data['day'] = pd.to_datetime(sleep_calendar_data['day'])
@@ -158,9 +162,107 @@ def summary_cards():
         "paddingRight": "10px"
     })
 
+# Create top statistics bar
+def create_top_stats_bar():
+    # Extract data from JSON (single row each)
+    weekly_avg = weekly_averages_data.iloc[0] if not weekly_averages_data.empty else {}
+    week_comp = week_comparison_data.iloc[0] if not week_comparison_data.empty else {}
+    sleep_brkdwn = sleep_breakdown_data.iloc[0] if not sleep_breakdown_data.empty else {}
+    chrono = chronotype_data.iloc[0] if not chronotype_data.empty else {}
+    
+    # Helper to format delta with arrow
+    def format_delta(val):
+        if pd.isna(val) or val == 0:
+            return "—"
+        return f"+{int(val)} ↑" if val > 0 else f"{int(val)} ↓"
+    
+    # Calculate sleep stage percentages
+    total_sleep = sleep_brkdwn.get('avg_total_seconds', 1)
+    if total_sleep > 0:
+        deep_pct = (sleep_brkdwn.get('avg_deep_seconds', 0) / total_sleep) * 100
+        rem_pct = (sleep_brkdwn.get('avg_rem_seconds', 0) / total_sleep) * 100
+        light_pct = (sleep_brkdwn.get('avg_light_seconds', 0) / total_sleep) * 100
+    else:
+        deep_pct = rem_pct = light_pct = 0
+    
+    return html.Div([
+        # Row 1: Week Averages & Comparison
+        html.Div([
+            # 7-Day Averages Card
+            html.Div([
+                html.H4("7-Day Averages", style={"margin": "0 0 10px 0", "fontSize": "16px", "color": "#555"}),
+                html.Div([
+                    html.Span("Sleep: ", style={"fontWeight": "normal", "color": "#666"}),
+                    html.Span(f"{int(weekly_avg.get('avg_sleep_score', 0))}", style={"fontWeight": "bold", "fontSize": "24px", "color": "#333"}),
+                ], style={"marginBottom": "5px"}),
+                html.Div([
+                    html.Span("Activity: ", style={"fontWeight": "normal", "color": "#666"}),
+                    html.Span(f"{int(weekly_avg.get('avg_activity_score', 0))}", style={"fontWeight": "bold", "fontSize": "24px", "color": "#333"}),
+                ], style={"marginBottom": "5px"}),
+                html.Div([
+                    html.Span("Readiness: ", style={"fontWeight": "normal", "color": "#666"}),
+                    html.Span(f"{int(weekly_avg.get('avg_readiness_score', 0))}", style={"fontWeight": "bold", "fontSize": "24px", "color": "#333"}),
+                ]),
+            ], style={"flex": "1", "padding": "15px", "backgroundColor": "#f9f9f9", "borderRadius": "8px", "marginRight": "10px"}),
+            
+            # This Week vs Last Week Card
+            html.Div([
+                html.H4("This Week vs Last", style={"margin": "0 0 10px 0", "fontSize": "16px", "color": "#555"}),
+                html.Div([
+                    html.Span("Sleep: ", style={"fontWeight": "normal", "color": "#666"}),
+                    html.Span(format_delta(week_comp.get('sleep_delta')), style={"fontWeight": "bold", "fontSize": "20px", "color": "#2ecc71" if week_comp.get('sleep_delta', 0) > 0 else "#e74c3c" if week_comp.get('sleep_delta', 0) < 0 else "#333"}),
+                ], style={"marginBottom": "5px"}),
+                html.Div([
+                    html.Span("Activity: ", style={"fontWeight": "normal", "color": "#666"}),
+                    html.Span(format_delta(week_comp.get('activity_delta')), style={"fontWeight": "bold", "fontSize": "20px", "color": "#2ecc71" if week_comp.get('activity_delta', 0) > 0 else "#e74c3c" if week_comp.get('activity_delta', 0) < 0 else "#333"}),
+                ], style={"marginBottom": "5px"}),
+                html.Div([
+                    html.Span("Readiness: ", style={"fontWeight": "normal", "color": "#666"}),
+                    html.Span(format_delta(week_comp.get('readiness_delta')), style={"fontWeight": "bold", "fontSize": "20px", "color": "#2ecc71" if week_comp.get('readiness_delta', 0) > 0 else "#e74c3c" if week_comp.get('readiness_delta', 0) < 0 else "#333"}),
+                ]),
+            ], style={"flex": "1", "padding": "15px", "backgroundColor": "#f9f9f9", "borderRadius": "8px", "marginRight": "10px"}),
+            
+            # Sleep Breakdown Card
+            html.Div([
+                html.H4("Sleep Breakdown (7-day avg)", style={"margin": "0 0 10px 0", "fontSize": "16px", "color": "#555"}),
+                html.Div([
+                    html.Div([
+                        html.Span(f"Deep: {deep_pct:.0f}%", style={"marginRight": "15px", "color": "#666"}),
+                        html.Span(f"REM: {rem_pct:.0f}%", style={"marginRight": "15px", "color": "#666"}),
+                        html.Span(f"Light: {light_pct:.0f}%", style={"color": "#666"}),
+                    ], style={"marginBottom": "8px"}),
+                    html.Div([
+                        html.Span(f"Total: {sleep_brkdwn.get('avg_total_hours', 0):.1f} hrs", style={"fontWeight": "bold", "fontSize": "20px", "color": "#333"}),
+                    ]),
+                ]),
+            ], style={"flex": "1", "padding": "15px", "backgroundColor": "#f9f9f9", "borderRadius": "8px", "marginRight": "10px"}),
+            
+            # Chronotype/Sleep Timing Card
+            html.Div([
+                html.H4("Sleep Timing (7-day avg)", style={"margin": "0 0 10px 0", "fontSize": "16px", "color": "#555"}),
+                html.Div([
+                    html.Span("Bedtime: ", style={"fontWeight": "normal", "color": "#666"}),
+                    html.Span(f"{chrono.get('avg_bedtime', 'N/A')}", style={"fontWeight": "bold", "fontSize": "18px", "color": "#333"}),
+                ], style={"marginBottom": "5px"}),
+                html.Div([
+                    html.Span("Wake Time: ", style={"fontWeight": "normal", "color": "#666"}),
+                    html.Span(f"{chrono.get('avg_wake_time', 'N/A')}", style={"fontWeight": "bold", "fontSize": "18px", "color": "#333"}),
+                ], style={"marginBottom": "5px"}),
+                html.Div([
+                    html.Span("Efficiency: ", style={"fontWeight": "normal", "color": "#666"}),
+                    html.Span(f"{int(chrono.get('avg_efficiency', 0))}%", style={"fontWeight": "bold", "fontSize": "18px", "color": "#333"}),
+                ]),
+            ], style={"flex": "1", "padding": "15px", "backgroundColor": "#f9f9f9", "borderRadius": "8px"}),
+            
+        ], style={"display": "flex", "marginBottom": "20px"}),
+    ])
+
 # Layout
 app.layout = html.Div([
-    html.H1("Sleep Dashboard", style={"textAlign": "center"}),
+    html.H1("Sleep Dashboard", style={"textAlign": "center", "marginBottom": "20px"}),
+
+    # Top Statistics Bar
+    create_top_stats_bar(),
 
     html.Div([
         # Sleep Calendar

@@ -12,6 +12,10 @@ ENDPOINTS = {
     "sleep_calendar": f"{API_BASE_URL}/sleep/calendar",
     "heartrate_trends": f"{API_BASE_URL}/heartrate/trends",
     "summary_statistics": f"{API_BASE_URL}/summary/statistics",
+    "weekly_averages": f"{API_BASE_URL}/summary/weekly_averages",
+    "week_comparison": f"{API_BASE_URL}/summary/week_comparison",
+    "sleep_breakdown": f"{API_BASE_URL}/summary/sleep_breakdown",
+    "chronotype_stats": f"{API_BASE_URL}/summary/chronotype",
     #"stress_trends": f"{API_BASE_URL}/stress_trends"
 }
 
