@@ -174,7 +174,7 @@ def create_top_stats_bar():
     def format_delta(val):
         if pd.isna(val) or val == 0:
             return "—"
-        return f"+{int(val)} ↑" if val > 0 else f"{int(val)} ↓"
+        return f"+{int(val)}" if val > 0 else f"{int(val)}"
     
     # Calculate sleep stage percentages
     total_sleep = sleep_brkdwn.get('avg_total_seconds', 1)
