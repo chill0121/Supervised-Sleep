@@ -12,8 +12,13 @@ import time
 def start_api():
     uvicorn.run('api.server:app', host=settings.API_IP, port=settings.API_PORT, reload=True)
 
-def main():
-    """Main function to initialize database and create tables."""
+def main(force_recreate_views=False):
+    """Main function to initialize database and create tables.
+    
+    Args:
+        force_recreate_views: If True, drops and recreates all materialized views 
+                             (useful when view definitions have changed)
+    """
     # fetch_historical_data()
 
     # Start API in a separate process.
@@ -24,7 +29,7 @@ def main():
     try:
         
         # Oura Data Fetch
-        fetch_process_save_data()
+        # fetch_process_save_data()
 
         connection = psycopg2.connect(database=settings.DB_NAME, user=settings.DB_USER, host=settings.DB_HOST, port=settings.DB_PORT)
         # # Delete All for troubleshooting.
@@ -37,7 +42,7 @@ def main():
         db_utilities.insert_json_files_to_db(connection, 1)
         
         # Generate Views
-        views.initialize_materialized_views(connection)
+        views.initialize_materialized_views(connection, force_recreate=force_recreate_views)
         # Database to Dashboard API
         generate_tableau_data()
         # Add a refresh to dashboard.
@@ -52,5 +57,12 @@ def main():
 
 
 if __name__ == '__main__':
-
-    main()
+    import sys
+    
+    # Check for --force-recreate flag
+    force_recreate = '--force-recreate' in sys.argv or '--recreate' in sys.argv or '-r' in sys.argv
+    
+    if force_recreate:
+        print("Force recreate mode enabled - all views will be dropped and recreated")
+    
+    main(force_recreate_views=force_recreate)
