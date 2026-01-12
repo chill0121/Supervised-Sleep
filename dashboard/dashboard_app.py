@@ -21,6 +21,7 @@ weekly_averages_data = pd.read_json(settings.TAB_DATA_DIR + "/weekly_averages.js
 week_comparison_data = pd.read_json(settings.TAB_DATA_DIR + "/week_comparison.json")
 sleep_breakdown_data = pd.read_json(settings.TAB_DATA_DIR + "/sleep_breakdown.json")
 chronotype_data = pd.read_json(settings.TAB_DATA_DIR + "/chronotype_stats.json", convert_dates=False)
+correlations_data = pd.read_json(settings.TAB_DATA_DIR + "/sleep_correlations.json")
 
 # Prepare data
 sleep_calendar_data['day'] = pd.to_datetime(sleep_calendar_data['day'])
@@ -254,6 +255,32 @@ def create_top_stats_bar():
                 ]),
             ], style={"flex": "1", "padding": "15px", "backgroundColor": "#f9f9f9", "borderRadius": "8px"}),
             
+        ], style={"display": "flex", "marginBottom": "20px"}),
+        
+        # Row 2: Correlations
+        html.Div([
+            html.Div([
+                html.H4("Top Correlations with Sleep Quality (30-day)", style={"margin": "0 0 15px 0", "fontSize": "16px", "color": "#555"}),
+                html.Div([
+                    html.Div([
+                        html.Div([
+                            html.Span(f"{row['metric']}", style={"fontWeight": "normal", "color": "#666", "marginRight": "10px"}),
+                            html.Span(
+                                f"{row['correlation']:.2f}",
+                                style={
+                                    "fontWeight": "bold",
+                                    "fontSize": "18px",
+                                    "color": "#2ecc71" if row['correlation'] > 0 else "#e74c3c" if row['correlation'] < 0 else "#333",
+                                    "padding": "2px 8px",
+                                    "backgroundColor": "#f0f0f0",
+                                    "borderRadius": "4px"
+                                }
+                            ),
+                        ], style={"display": "flex", "alignItems": "center", "marginBottom": "8px"})
+                        for _, row in correlations_data.iterrows()
+                    ]) if not correlations_data.empty else html.Span("No correlation data available", style={"color": "#999"})
+                ]),
+            ], style={"flex": "1", "padding": "15px", "backgroundColor": "#f9f9f9", "borderRadius": "8px"}),
         ], style={"display": "flex", "marginBottom": "20px"}),
     ])
 
