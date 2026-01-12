@@ -34,3 +34,9 @@ def get_chronotype_stats():
     """Fetch chronotype/sleep timing statistics."""
     query = "SELECT * FROM chronotype_stats;"
     return fetch_query_results(query)
+
+@router.get("/correlations")
+def get_sleep_correlations():
+    """Fetch top correlations with sleep quality."""
+    query = "SELECT * FROM sleep_correlations;"
+    return fetch_query_results(query)
