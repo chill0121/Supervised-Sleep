@@ -16,6 +16,7 @@ ENDPOINTS = {
     "week_comparison": f"{API_BASE_URL}/summary/week_comparison",
     "sleep_breakdown": f"{API_BASE_URL}/summary/sleep_breakdown",
     "chronotype_stats": f"{API_BASE_URL}/summary/chronotype",
+    "sleep_correlations": f"{API_BASE_URL}/summary/correlations",
     #"stress_trends": f"{API_BASE_URL}/stress_trends"
 }
 
