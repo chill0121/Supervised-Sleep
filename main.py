@@ -29,7 +29,7 @@ def main(force_recreate_views=False):
     try:
         
         # Oura Data Fetch
-        # fetch_process_save_data()
+        fetch_process_save_data()
 
         connection = psycopg2.connect(database=settings.DB_NAME, user=settings.DB_USER, host=settings.DB_HOST, port=settings.DB_PORT)
         # # Delete All for troubleshooting.
